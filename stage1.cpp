@@ -343,7 +343,7 @@ string Compiler::ids() //token should be NON_KEY_ID
     }
     return tempString;
 }
-//TODO START
+// TODO STAGE1 START
 void Compiler::execStmts() {
     
 }
@@ -380,7 +380,7 @@ void Compiler::factors() {
 void Compiler::part() {
     
 }   
-//TODO END
+// TODO STAGE1 END
 
 // Helper functions for the Pascallite lexicon
 bool Compiler::isKeyword(string s) const { // determines if s is a keyword
@@ -588,7 +588,7 @@ string Compiler::whichValue(string name) //tells which value a name has
     }
     return value;
 }
-
+// TODO
 void Compiler::code(string op, string operand1, string operand2)
 {
     if (op == "program")
@@ -599,25 +599,61 @@ void Compiler::code(string op, string operand1, string operand2)
     {
         emitEpilogue();
     }
+    // else if (op == "read")
+    // emit read code
+    // else if (op == "write")
+    // emit write code
+    // else if (op == "+") // this must be binary '+'
+    // emit addition code
+    // else if (op == "-") // this must be binary '-'
+    // emit subtraction code
+    // else if (op == "neg") // this must be unary '-'
+    // emit negation code;
+    // else if (op == "not")
+    // emit not code
+    // else if (op == "*")
+    // emit multiplication code
+    // else if (op == "div")
+    // emit division code
+    // else if (op == "mod")
+    // emit modulo code
+    // else if (op == "and")
+    // emit and code
+    // ...
+    // else if (op == "=")
+    // emit equality code
+    // else if (op == ":=")
+    // emit assignment code
     else
     {
         processError("compiler error since function code should not be called with illegal arguments");
     }
 }
-//TODO START
-void Compiler::pushOperator(string op) {
-    
+// TODO STAGE1 START
+void Compiler::pushOperator(string op) { //push name onto operatorStk
+    // push name onto stack;
 }
-string Compiler::popOperator() {
+string Compiler::popOperator() { //push name onto operandStk
+//if name is a literal, also create a symbol table entry for it
+    // if name is a literal and has no symbol table entry
+        // insert symbol table entry, call whichType to determine the data type of the literal
+    // push name onto stack;
     return "string";
 }
 void Compiler::pushOperand(string operand) {
-    
+    // if operatorStk is not empty
+        // return top element removed from stack;
+    // else
+        // processError(compiler error; operator stack underflow)
 }
 string Compiler::popOperand() {
+    // if operandStk is not empty
+        // return top element removed from stack;
+    // else
+        // processError(compiler error; operand stack underflow)
     return "string";
 }
-//TODO END
+// TODO STAGE1 END
 
 // Emit Functions
 void Compiler::emit(string label, string instruction, string operands, string comment)
@@ -691,15 +727,51 @@ void Compiler::emitStorage()
         }
     }
 }
-// TODO START
+
+// TODO STAGE1 START
 void Compiler::emitReadCode(string operand, string = "") {
-    
+    // string name
+    // while (name is broken from list (operand) and put in name != "")
+    // {
+        // if name is not in symbol table
+            // processError(reference to undefined symbol)
+        // if data type of name is not INTEGER
+            // processError(can't read variables of this type)
+        // if storage mode of name is not VARIABLE
+            // processError(attempting to read to a read-only location)
+        // emit code to call the Irvine ReadInt function
+        // emit code to store the contents of the A register at name
+        // set the contentsOfAReg = name
+    // }
 }
 void Compiler::emitWriteCode(string operand, string = "") {
-    
+    string name
+    static bool definedStorage = false
+    while (name is broken from list (operand) and put in name != "")
+    {
+        // if name is not in symbol table
+            // processError(reference to undefined symbol)
+        // if name is not in the A register
+            // emit the code to load name in the A register
+            // set the contentsOfAReg = name
+        // if data type of name is INTEGER or BOOLEAN
+            // emit code to call the Irvine WriteInt function
+        // emit code to call the Irvine Crlf function
+ } // end while
 }
 void Compiler::emitAssignCode(string operand1, string operand2) {         // op2 = op1
-
+    // if types of operands are not the same
+        // processError(incompatible types)
+    // if storage mode of operand2 is not VARIABLE
+        // processError(symbol on left-hand side of assignment must have a storage mode of VARIABLE)
+    // if operand1 = operand2 
+        // return
+    // if operand1 is not in the A register then
+        // emit code to load operand1 into the A register
+        // emit code to store the contents of that register into the memory location pointed to by operand2
+    // set the contentsOfAReg = operand2
+    // if operand1 is a temp then free its name for reuse
+    //operand2 can never be a temporary since it is to the left of ':='
 }
 void Compiler::emitAdditionCode(string operand1, string operand2) {       // op2 +  op1
 
@@ -746,7 +818,7 @@ void Compiler::emitGreaterThanCode(string operand1, string operand2) {    // op2
 void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
 
 }
-// TODO END
+// TODO STAGE1 END
 
 // Lexical routines
 char Compiler::nextChar()
@@ -864,17 +936,26 @@ string Compiler::genInternalName(storeTypes stype) const
     
     return name;
 }
-// TODO START
+// TODO STAGE1 START
 void freeTemp() {
-    
+    currentTempNo--;
+    if (currentTempNo < -1)
+        processError("compiler error, currentTempNo should be ≥ –1");
 }
 string getTemp() {
-    return "string";
+    string temp;
+    currentTempNo++;
+    temp = "T" + currentTempNo;
+    if (currentTempNo > maxTempNo)
+        insert(temp, UNKNOWN, VARIABLE, "", NO, 1);
+        maxTempNo++;
+    return temp;
 }
 string getLabel() {
     return "string";
 }
+
 bool isTemporary(string s) const { // determines if s represents a temporary
     return true;
 }
-// TODO END
+// TODO STAGE1 END
