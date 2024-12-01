@@ -372,7 +372,15 @@ void Compiler::execStmt() {
     }
 } 
 void Compiler::assignStmt() {
-    
+    if (!isNonKeyId(token)) {
+        processError("expected non-keyword identifier");
+    }
+    pushOperand(token);
+    if (nextToken() != ":=") {
+        processError("expected \":=\"");
+    }
+    pushOperator(token);
+    express();
 }
 void Compiler::readStmt() {
     
