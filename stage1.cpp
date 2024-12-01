@@ -372,15 +372,21 @@ void Compiler::execStmt() {
     }
 } 
 void Compiler::assignStmt() {
+    string x;
     if (!isNonKeyId(token)) {
         processError("expected non-keyword identifier");
     }
-    pushOperand(token);
+    x = token;
+    pushOperand(x);
     if (nextToken() != ":=") {
         processError("expected \":=\"");
     }
     pushOperator(token);
     express();
+    if (nextToken() != ";") {
+        processError("expected \":=\"");
+    }
+    code(popOperator(),popOperand(),popOperand());
 }
 void Compiler::readStmt() {
     
@@ -389,13 +395,15 @@ void Compiler::writeStmt() {
     
 }
 void Compiler::express() {
-    
+    term();
+    expresses();
 } 
 void Compiler::expresses() {
     
 } 
 void Compiler::term() {
-    
+    factor();
+    terms();
 }    
 void Compiler::terms() {
     
