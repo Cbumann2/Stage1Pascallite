@@ -181,7 +181,7 @@ void Compiler::beginEndStmt() //token should be "begin"
     
     execStmts();
 
-    if (nextToken() != "end")
+    if (token != "end")
     {
         processError("keyword \"end\" expected");
     }
@@ -345,10 +345,31 @@ string Compiler::ids() //token should be NON_KEY_ID
 }
 // TODO STAGE1 START
 void Compiler::execStmts() {
-    
+    // get the next token and see if its end, and leave function if it is
+    if (nextToken() == "end") {
+        return;
+    }
+    if (token != read && token != "write" && !isNonKeyId(token)) {
+        processError("expected \"read\", \"write\", or non-keyword identifier");
+    }
+    execStmt();
+    execStmts();
 }
 void Compiler::execStmt() {
-    
+    if (isNonKeyId(token)) {
+        assignStmt();
+    }
+    else if (token == "read") {
+        readStmt();
+    }
+    else if (token == "write") {
+        writeStmt();
+    }
+    // I dont think this needs an else but im putting one in anyway!
+    // rewrite the process error if needed
+    else {
+        processError("Error in execStmt");
+    }
 } 
 void Compiler::assignStmt() {
     
