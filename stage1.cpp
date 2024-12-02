@@ -389,22 +389,58 @@ void Compiler::assignStmt() {
     code(popOperator(),popOperand(),popOperand());
 }
 void Compiler::readStmt() {
+    string x;
+    if (token == "read") {
+        readStmt();
+    }
+    // Read List Start
+    if (nextToken() != "(") {
+        processError("expected \"(\"");
+    }
+    nextToken();
+    x = ids();
     
+    if (nextToken() != ")") {
+        processError("expected \")\"");
+    )
+    code('read',x);
+    // Read List End
+    if (nextToken() != ";") {
+        processError("expected \";\"");
+    )
 } 
 void Compiler::writeStmt() {
-    
+    string x;
+    if (token == "write") {
+        readStmt();
+    }
+    // Write List Start
+    if (nextToken() != "(") {
+        processError("expected \"(\"");
+    }
+    // if there are issues with this function it may be this
+    nextToken();
+    x = ids();
+    if (nextToken() != ")") {
+        processError("expected \")\"");
+    )
+    code('write',x);
+    // Write List End
+    if (nextToken() != ";") {
+        processError("expected \";\"");
+    )
 }
 void Compiler::express() {
     term();
     expresses();
 } 
 void Compiler::expresses() {
-    
+    if (nextToken() != "")
 } 
 void Compiler::term() {
     factor();
     terms();
-}    
+}
 void Compiler::terms() {
     
 }    
@@ -415,6 +451,79 @@ void Compiler::factors() {
     
 }   
 void Compiler::part() {
+    string x;
+    if ( /**/ == "not") {
+        if (nextToken() == "(") {
+            express();
+            if (nextToken() != ')') {
+                processError("expected \")\"");
+            }
+            string popped = popOperand();
+            code("not",popped);
+        }
+        else if (isBoolean(token)) {
+            x = token;
+            if (x == "true") {
+                x = "false";
+            }
+            else {
+                x = "true";
+            }
+            pushOperand(x);
+        }
+        else if (isNonKeyId(token)) {
+            x = token;
+            code("not", x);
+        }
+        else {
+            processError("expected \"(\", BOOLEAN, or non-keyword identifier");
+        }
+    }
+    else if ( /**/ == "+") {
+        if ( nextToken() == "(") {
+            express();
+            if (nextToken() != ')') {
+                processError("expected \")\"");
+            }
+        }
+        x = token;
+        else if (isInteger(x) || isNonKeyId(x)) {
+            pushOperand(x);
+        }
+        else {
+            processError("expected \"(\", INTEGER, or non-keyword identifier");
+        }
+    }
+    else if ( /**/ == "-") {
+        if ( nextToken() == "(") {
+            express();
+            if (nextToken() != ')') {
+                processError("expected \")\"");
+            }
+            string popped = popOperand();
+            code("neg",popped);
+        }
+        x = token;
+        else if (isInteger(x)) {
+            pushOperand("-"+x);
+        }
+        else if (isNonKeyId(x)) {
+            code("neg", x);
+        }
+        else {
+            processError("expected \"(\", INTEGER, or non-keyword identifier");
+        }
+    }
+    else if(isInteger(token) || isBoolean(token) || isNonKeyId(token)) {
+        pushOperand(x);
+    }
+    else if(token == "(") {
+        express();
+        if (nextToken() != ')') {
+            processError("expected \")\"");
+        }
+    }
+    
     
 }   
 // TODO STAGE1 END
