@@ -974,12 +974,12 @@ string Compiler::genInternalName(storeTypes stype) const
     return name;
 }
 // TODO STAGE1 START
-void freeTemp() {
+void Compiler::freeTemp() {
     currentTempNo--;
     if (currentTempNo < -1)
         processError("compiler error, currentTempNo should be ≥ –1");
 }
-string getTemp() {
+string Compiler::getTemp() {
     string temp;
     currentTempNo++;
     temp = "T" + currentTempNo;
@@ -988,11 +988,11 @@ string getTemp() {
         maxTempNo++;
     return temp;
 }
-string getLabel() {
+string Compiler::getLabel() {
     return "string";
 }
 
-bool isTemporary(string s) const { // determines if s represents a temporary
+bool Compiler::ComisTemporary(string s) const { // determines if s represents a temporary
     return true;
 }
 // TODO STAGE1 END
