@@ -38,7 +38,7 @@ void Compiler::createListingHeader()
 {
     time_t now = time (NULL);
 
-    listingFile << "STAGE0: Connor Bumann, Ian Park        "; // add DATE, TIME OF DAY
+    listingFile << "STAGE1: Connor Bumann, Ian Park        "; // add DATE, TIME OF DAY
     listingFile << ctime(&now) << endl;
     
     listingFile << "LINE NO.              SOURCE STATEMENT" << endl;
