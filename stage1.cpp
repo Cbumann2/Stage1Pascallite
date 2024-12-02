@@ -992,7 +992,7 @@ string Compiler::getLabel() {
     return "string";
 }
 
-bool Compiler::ComisTemporary(string s) const { // determines if s represents a temporary
+bool Compiler::isTemporary(string s) const { // determines if s represents a temporary
     return true;
 }
 // TODO STAGE1 END
