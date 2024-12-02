@@ -996,3 +996,131 @@ bool isTemporary(string s) const { // determines if s represents a temporary
     return true;
 }
 // TODO STAGE1 END
+/*
+void Compiler::emitReadCode(string operand, string = "") 
+{
+   string name;
+   stringstream ss(operand);
+   
+   while (getline(ss, name, ","))
+   {
+      if (symbolTable.find(operand) == symbolTable.end())
+      {
+         processError("reference to undefined symbol: " + operand);
+      }
+      if (whichType(name) != INTEGER)
+      {
+         processError("can't read variables of this type" + name);
+      }
+      if (symbolTable.at(name).getMode() != VARIABLE)
+      {
+         processError("attempting to read to a read-only location");
+      }
+      
+      emit("", "CALL", "ReadInt");
+      
+      emit("", "MOV", name + ", EAX");
+      
+      contentsOfAReg = name;
+   }
+}
+void Compiler::emitWriteCode(string operand, string = "") 
+{
+   string name
+   static bool definedStorage = false
+   istringsteam tokenStream(operand);
+   
+   while (getline(tokenStream, name, ','))
+   {
+      name = trim(name);
+
+      if (!symbolTable.contains(name))
+      {
+         processError("reference to undefinded symbol");
+      }
+      if (contentsOfAReg != name)
+      {
+         emit("Load " + name);
+         contentsOfAReg = name;
+      }
+      if (symbolTable[name].dataType == "INTEGER" || symbolTable[name].dataType == "BOOLEAN") 
+      {
+         emit("CALL WriteInt");
+      }
+      
+      emit ("CALL Crlf");
+      
+   }
+}
+void Compiler::emitAssignCode(string operand1, string operand2) 
+{         
+   if (symbolTable[operand1].dataType != symbolTable[operand2].dataType)
+   {
+      processError("incompatible types");
+   }  
+   if (symbolTable[operand2].storageMode != "VARIABLE")
+   {
+      processError("(symbol on left-hand side of assignment must have a storage mode of VARIABLE");      
+   }
+   if (operand1 == operand2)
+   {
+      return;
+   }
+   if (contentsOfAReg != operand1)
+   {
+      emit("LOAD " + operand1);
+      contentsOfAReg = operand1;
+   }
+   
+   emit("STORE " + operand2);
+   contentsOfAReg = operand2;
+   
+   if (isTemporary(operand1))
+   {
+      freeTemp(operand1);
+   }
+}
+
+void Compiler::emitAdditionCode(string operand1, string operand2)
+{       
+   if (operand1.getDataType() != "INTEGER" || operand1.getDataType() != "INTEGER")
+   {
+      processError("illegal type");
+   }
+   if (isTemp(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      emit("STORE " + contentsOfAReg);
+      symbolTable[contentsOfAReg].isAllocated = true;
+      deassign(contentsOfAReg);
+   }
+   if (!isTemp(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      deassign(contentsOfAReg);
+   }
+   if (contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      emit("Load " + operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("ADD " + operand1);
+   
+   
+   if (isTemporary(operand1)) 
+   {
+       freeTemporary(operand1);  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemporary(operand2);  
+   }
+   
+   string temp = getTemp();
+   emit("STORE " + temp);
+   symbolTable[temp].dataType = "INTEGER";
+   contentsOfAReg = temp;
+   
+   operandStk.push(temp);
+   
+}
+*/
