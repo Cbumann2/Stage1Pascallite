@@ -445,14 +445,26 @@ void Compiler::terms() {
     
 }    
 void Compiler::factor() {
-    
+    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && != "(") {
+        processError("expected part")
+    }
+    part();
+    factors();
 }    
 void Compiler::factors() {
+    string x;
+    // mult_level_op
+    if (nextToken() != "*" && token != "div" && token != "mod" && token != "and") {
+      processError("expected MULT_LEVEL_OP")  
+    }
+    x = token;
+    pushOperator(x);
+    
     
 }   
 void Compiler::part() {
     string x;
-    if ( /**/ == "not") {
+    if (token() == "not") {
         if (nextToken() == "(") {
             express();
             if (nextToken() != ')') {
@@ -479,7 +491,7 @@ void Compiler::part() {
             processError("expected \"(\", BOOLEAN, or non-keyword identifier");
         }
     }
-    else if ( /**/ == "+") {
+    else if (token == "+") {
         if ( nextToken() == "(") {
             express();
             if (nextToken() != ')') {
@@ -494,7 +506,7 @@ void Compiler::part() {
             processError("expected \"(\", INTEGER, or non-keyword identifier");
         }
     }
-    else if ( /**/ == "-") {
+    else if (token == "-") {
         if ( nextToken() == "(") {
             express();
             if (nextToken() != ')') {
@@ -515,16 +527,17 @@ void Compiler::part() {
         }
     }
     else if(isInteger(token) || isBoolean(token) || isNonKeyId(token)) {
-        pushOperand(x);
+        pushOperand(token);
     }
     else if(token == "(") {
         express();
         if (nextToken() != ')') {
             processError("expected \")\"");
         }
+    } 
+    else {
+        processError("part error");
     }
-    
-    
 }   
 // TODO STAGE1 END
 
