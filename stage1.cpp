@@ -562,7 +562,7 @@ void Compiler::part() {
 
 // Helper functions for the Pascallite lexicon
 bool Compiler::isKeyword(string s) const { // determines if s is a keyword
-    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not"};
+    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not", "mod", "div", "or", "read", "write"};
     for(uint i = 0; i < keywords.size(); ++i) {
         if(s == keywords[i])
             return true;
@@ -571,7 +571,7 @@ bool Compiler::isKeyword(string s) const { // determines if s is a keyword
 }
 
 bool Compiler::isSpecialSymbol(char c) const { // determines if c is a special symbol
-    vector<char> symbols = {'=',':',',',';','.','+','-'};
+    vector<char> symbols = {'=',':',',',';','.','+','-',':','*','(',')','<','>'};
     for (uint i = 0; i < symbols.size(); ++i) {
         if(c == symbols[i]){
             return true;
@@ -1122,24 +1122,43 @@ string Compiler::genInternalName(storeTypes stype) const
 // TODO STAGE1 START
 void Compiler::freeTemp() {
     currentTempNo--;
-    if (currentTempNo < -1)
+    if (currentTempNo < -1) {
         processError("compiler error, currentTempNo should be ≥ –1");
+    }
 }
-string Compiler::getTemp() {
+string Compiler::getTemp()
+{
     string temp;
     currentTempNo++;
     temp = "T" + currentTempNo;
-    if (currentTempNo > maxTempNo)
+    
+    if (currentTempNo > maxTempNo) 
+    {
         insert(temp, UNKNOWN, VARIABLE, "", NO, 1);
         maxTempNo++;
+    }
     return temp;
 }
 string Compiler::getLabel() {
-    return "string";
+    static int i = -1;
+    i++;
+    string label = ".L" + to_string(i);
+    return label;
 }
 
 bool Compiler::isTemporary(string s) const { // determines if s represents a temporary
-    return true;
+    if (s.length() > 1 && s[0] == 'T')
+   {
+      for (size_t i = 1; i < s.length(); ++i)
+      {
+         if (!isdigit(s[i]))
+         {
+            return false;
+         }
+      }
+      return true;
+   }
+   return false;
 }
 // TODO STAGE1 END
 /*
