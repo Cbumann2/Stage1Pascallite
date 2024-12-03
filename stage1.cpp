@@ -381,7 +381,6 @@ void Compiler::assignStmt() {
     x = token;
     pushOperand(x);
     if (nextToken() != ":=") {
-        cout << token << endl;
         processError("expected \":=\"");
     }
     pushOperator(token);
