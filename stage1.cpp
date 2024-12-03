@@ -345,6 +345,7 @@ string Compiler::ids() //token should be NON_KEY_ID
     return tempString;
 }
 // TODO STAGE1 START
+
 void Compiler::execStmts() {
     // get the next token and see if its end, and leave function if it is
     if (nextToken() == "end") {
@@ -380,53 +381,53 @@ void Compiler::assignStmt() {
     x = token;
     pushOperand(x);
     if (nextToken() != ":=") {
+        cout << token << endl;
         processError("expected \":=\"");
     }
     pushOperator(token);
     express();
     if (nextToken() != ";") {
-        processError("expected \":=\"");
+        processError("expected \";\"");
     }
     code(popOperator(),popOperand(),popOperand());
 }
 void Compiler::readStmt() {
     string x;
-    if (token == "read") {
-        readStmt();
+    if (token != "read") {
+        processError("expected \"read\"");
     }
-    // Read List Start
+    //Read List Start
     if (nextToken() != "(") {
         processError("expected \"(\"");
     }
     nextToken();
     x = ids();
-    
-    if (nextToken() != ")") {
+    if (token != ")") {
         processError("expected \")\"");
     }
     code("read",x);
-    // Read List End
+    //Read List End
     if (nextToken() != ";") {
         processError("expected \";\"");
     }
 } 
 void Compiler::writeStmt() {
     string x;
-    if (token == "write") {
-        readStmt();
+    if (token != "write") {
+        processError("expected \"write\"");
     }
     // Write List Start
     if (nextToken() != "(") {
         processError("expected \"(\"");
     }
-    // if there are issues with this function it may be this
+    //if there are issues with this function it may be this
     nextToken();
     x = ids();
-    if (nextToken() != ")") {
+    if (token != ")") {
         processError("expected \")\"");
     }
     code("write",x);
-    // Write List End
+    //Write List End
     if (nextToken() != ";") {
         processError("expected \";\"");
     }
@@ -470,7 +471,7 @@ void Compiler::factor() {
 }    
 void Compiler::factors() {
     string x;
-    // mult_level_op
+    //mult_level_op
     if (nextToken() == "*" || token == "div" || token == "mod" || token == "and") { 
         x = token;
         pushOperator(x);
@@ -489,7 +490,7 @@ void Compiler::part() {
     if (token == "not") {
         if (nextToken() == "(") {
             express();
-            if (nextToken() != ")") {
+            if (token != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
@@ -514,7 +515,7 @@ void Compiler::part() {
     else if (token == "+") {
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ")") {
+            if (token != ")") {
                 processError("expected \")\"");
             }
         }
@@ -529,7 +530,7 @@ void Compiler::part() {
         x = token;
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ")") {
+            if (token != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
@@ -550,7 +551,7 @@ void Compiler::part() {
     }
     else if(token == "(") {
         express();
-        if (nextToken() != ")") {
+        if (token != ")") {
             processError("expected \")\"");
         }
     } 
@@ -769,31 +770,60 @@ void Compiler::code(string op, string operand1, string operand2)
     {
         emitEpilogue();
     }
-    // else if (op == "read")
-    // emit read code
-    // else if (op == "write")
-    // emit write code
-    // else if (op == "+") // this must be binary '+'
-    // emit addition code
-    // else if (op == "-") // this must be binary '-'
-    // emit subtraction code
-    // else if (op == "neg") // this must be unary '-'
-    // emit negation code;
-    // else if (op == "not")
-    // emit not code
-    // else if (op == "*")
-    // emit multiplication code
-    // else if (op == "div")
-    // emit division code
-    // else if (op == "mod")
-    // emit modulo code
-    // else if (op == "and")
-    // emit and code
-    // ...
-    // else if (op == "=")
-    // emit equality code
-    // else if (op == ":=")
-    // emit assignment code
+    else if (op == "read") {
+        emitReadCode(operand1);
+    }
+    else if (op == "write") {
+        emitWriteCode(operand1);
+    }
+    else if (op == "+") {
+        emitAdditionCode(operand1, operand2);
+    }
+    else if (op == "-") {
+        emitSubtractionCode(operand1, operand2);
+    }
+    else if (op == "neg") {
+       emitNegationCode(operand1);
+    }
+    else if (op == "not") {
+       emitNotCode(operand1);
+    }
+    else if (op == "*") {
+       emitMultiplicationCode(operand1, operand2);
+    }
+    else if (op == "div") {
+       emitDivisionCode(operand1, operand2);
+    }
+    else if (op == "mod") {
+       emitModuloCode(operand1, operand2);
+    }
+    else if (op == "and") {
+       emitAndCode(operand1, operand2);
+    }
+    else if (op == "or") {
+       emitOrCode(operand1, operand2);
+    }
+    else if (op == ":=") {
+       emitAssignCode(operand2, operand1);
+    }
+    else if (op == "=") {
+        emitEqualityCode(operand1, operand2);
+    }
+    else if (op == "<>") {
+      emitInequalityCode(operand1, operand2);
+    }
+    else if (op == "<") {
+      emitLessThanCode(operand1, operand2);
+    }
+    else if (op == "<=") {
+      emitLessThanOrEqualToCode(operand1, operand2);
+    }
+    else if (op == ">") {
+      emitGreaterThanCode(operand1, operand2);
+    }
+    else if (op == ">=") {
+      emitGreaterThanOrEqualToCode(operand1, operand2);
+    }
     else
     {
         processError("compiler error since function code should not be called with illegal arguments");
@@ -804,27 +834,21 @@ void Compiler::pushOperator(string op) { //push name onto operatorStk
     operatorStk.push(op);
 }
 
-void Compiler::pushOperand(string op) {
-    // if (isLiteral(operand) && symbolTable.find(operand) == symbolTable.end()) {
-        // if (isBoolean(operand)) 
-        // {
-            // symbolTable.insert
-        // }
-        
-    // }
-    if (isInteger(op) and (symbolTable.find(op) == symbolTable.end())) {
-      //cout << "inserting " << op << " in pushOperand" << endl;
-		insert(op, whichType(op), CONSTANT, op, YES, 1);
-	}
-	if (isBoolean(op) and (symbolTable.find(op) == symbolTable.end()))
-	{
-		if (op == "true")
-      		symbolTable.insert(pair<string, SymbolTableEntry>(op, SymbolTableEntry("TRUE", BOOLEAN, CONSTANT, "-1", YES, 1)));
-		else if (op == "false")
-	      	symbolTable.insert(pair<string, SymbolTableEntry>(op, SymbolTableEntry("FALSE", BOOLEAN, CONSTANT, "0", YES, 1)));
-
-	}
-   operandStk.push(op);
+void Compiler::pushOperand(string operand) {
+    if (isLiteral(operand) && symbolTable.find(operand) == symbolTable.end()) {
+        if (isBoolean(operand)) 
+        {
+            if (operand == "true")
+                symbolTable.insert(pair<string, SymbolTableEntry>(operand, SymbolTableEntry("TRUE", BOOLEAN, CONSTANT, "true", YES, 1)));
+            else if (operand == "false")
+                symbolTable.insert(pair<string, SymbolTableEntry>(operand, SymbolTableEntry("FALSE", BOOLEAN, CONSTANT, "false", YES, 1)));
+        }
+        else
+        {
+            insert(operand, whichType(operand), CONSTANT, operand, YES, 1);
+        }
+    }
+   operandStk.push(operand);
 }
 string Compiler::popOperator() { 
    if (!operatorStk.empty()) {
@@ -1087,6 +1111,20 @@ string Compiler::nextToken() //returns the next token or end of file marker
         else if (isSpecialSymbol(ch)) {
             token = ch;
             nextChar();
+            // this my cause errors
+            if (token == ":" && ch == '=') {
+                token += ch;
+                nextChar();
+            }
+            if (token == "<" && (ch == '>' || ch == '=')) {
+                token += ch;
+                nextChar();
+            }
+            else if (token == ">" && ch == '=') {
+                token += ch;
+                nextChar();
+            }
+                
         }
         else if (islower(ch)) {
             token = ch;
