@@ -230,8 +230,9 @@ void Compiler::constStmts() //token should be NON_KEY_ID
             processError("boolean or non-keyword identifier expected after \"not\"");
         }
         if (isNonKeyId(token)) {
+            
             if(whichType(token) == BOOLEAN){
-                if(whichValue(token) == "-1"){
+                if(whichValue(token) == "true"){
                     y = "false";
                 }
                 else{
@@ -263,7 +264,7 @@ void Compiler::constStmts() //token should be NON_KEY_ID
     {
         processError("data type of token on the right-hand side must be INTEGER or BOOLEAN");
     }
-
+    
     insert(x,whichType(y),CONSTANT,whichValue(y),YES,1);
 
     x = nextToken();
@@ -658,7 +659,7 @@ void Compiler::insert(string externalName,storeTypes inType, modes inMode, strin
     }
     while ( name != "") {
         if (symbolTable.find(name) != symbolTable.end()) {
-           processError("symbol x is multiply defined");
+           processError("symbol "+ name +" is multiply defined");
         }
         else if (isKeyword(name)) {
             processError("illegal use of keyword");
@@ -666,14 +667,6 @@ void Compiler::insert(string externalName,storeTypes inType, modes inMode, strin
         else { //create table entry
             numTableEntries++;
             if (numTableEntries <= 256) {
-                if (inType == BOOLEAN) {
-                    if(inValue == "true") {
-                        inValue = "-1";
-                    } 
-                    else {
-                        inValue = "0";
-                    } 
-                } 
                 if (isupper(name[0])) {
                     //symbolTable[name]=(name,inType,inMode,inValue,inAlloc,inUnits);
                     SymbolTableEntry ste(name,inType,inMode,inValue,inAlloc,inUnits);
@@ -867,7 +860,20 @@ void Compiler::emitStorage()
             comment_name = "; " + steItr->first;
             internalName = steItr->second.getInternalName();
             instruction = "dd";
+            if (steItr->second.getDataType() == BOOLEAN) {
+                if (steItr->second.getValue() == "true") 
+                {
+                    value = "-1";
+                }
+                else
+                {
+                    value = "0";
+                }
+            }
+            else 
+            {
             value = steItr->second.getValue();
+            }
             emit(internalName, instruction, value, comment_name);
         }
     }
