@@ -350,7 +350,7 @@ void Compiler::execStmts() {
     if (nextToken() == "end") {
         return;
     }
-    if (token != read && token != "write" && !isNonKeyId(token)) {
+    if (token != "read" && token != "write" && !isNonKeyId(token)) {
         processError("expected \"read\", \"write\", or non-keyword identifier");
     }
     execStmt();
@@ -403,12 +403,12 @@ void Compiler::readStmt() {
     
     if (nextToken() != ")") {
         processError("expected \")\"");
-    )
-    code('read',x);
+    }
+    code("read",x);
     // Read List End
     if (nextToken() != ";") {
         processError("expected \";\"");
-    )
+    }
 } 
 void Compiler::writeStmt() {
     string x;
@@ -424,12 +424,12 @@ void Compiler::writeStmt() {
     x = ids();
     if (nextToken() != ")") {
         processError("expected \")\"");
-    )
-    code('write',x);
+    }
+    code("write",x);
     // Write List End
     if (nextToken() != ";") {
         processError("expected \";\"");
-    )
+    }
 }
 void Compiler::express() {
     term();
@@ -462,8 +462,8 @@ void Compiler::terms() {
     }
 }    
 void Compiler::factor() {
-    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && != "(") {
-        processError("expected part")
+    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
+        processError("expected part");
     }
     part();
     factors();
@@ -485,18 +485,17 @@ void Compiler::factors() {
     }
 }   
 void Compiler::part() {
-    string x;
-    if (token() == "not") {
+    string x = token;
+    if (token == "not") {
         if (nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
             code("not",popped);
         }
-        else if (isBoolean(token)) {
-            x = token;
+        else if (isBoolean(x)) {
             if (x == "true") {
                 x = "false";
             }
@@ -505,8 +504,7 @@ void Compiler::part() {
             }
             pushOperand(x);
         }
-        else if (isNonKeyId(token)) {
-            x = token;
+        else if (isNonKeyId(x)) {
             code("not", x);
         }
         else {
@@ -516,11 +514,10 @@ void Compiler::part() {
     else if (token == "+") {
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
         }
-        x = token;
         else if (isInteger(x) || isNonKeyId(x)) {
             pushOperand(x);
         }
@@ -529,15 +526,15 @@ void Compiler::part() {
         }
     }
     else if (token == "-") {
+        x = token;
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
             code("neg",popped);
         }
-        x = token;
         else if (isInteger(x)) {
             pushOperand("-"+x);
         }
@@ -553,7 +550,7 @@ void Compiler::part() {
     }
     else if(token == "(") {
         express();
-        if (nextToken() != ')') {
+        if (nextToken() != ")") {
             processError("expected \")\"");
         }
     } 
@@ -915,7 +912,7 @@ void Compiler::emitStorage()
 }
 
 // TODO STAGE1 START
-void Compiler::emitReadCode(string operand, string = "") {
+void Compiler::emitReadCode(string operand, string operand2) {
     // string name
     // while (name is broken from list (operand) and put in name != "")
     // {
@@ -930,11 +927,11 @@ void Compiler::emitReadCode(string operand, string = "") {
         // set the contentsOfAReg = name
     // }
 }
-void Compiler::emitWriteCode(string operand, string = "") {
-    string name
-    static bool definedStorage = false
-    while (name is broken from list (operand) and put in name != "")
-    {
+void Compiler::emitWriteCode(string operand, string operand2) {
+    // string name
+    // static bool definedStorage = false
+    // while (name is broken from list (operand) and put in name != "")
+    // {
         // if name is not in symbol table
             // processError(reference to undefined symbol)
         // if name is not in the A register
@@ -943,7 +940,7 @@ void Compiler::emitWriteCode(string operand, string = "") {
         // if data type of name is INTEGER or BOOLEAN
             // emit code to call the Irvine WriteInt function
         // emit code to call the Irvine Crlf function
- } // end while
+ // } // end while
 }
 void Compiler::emitAssignCode(string operand1, string operand2) {         // op2 = op1
     // if types of operands are not the same
@@ -974,10 +971,10 @@ void Compiler::emitDivisionCode(string operand1, string operand2) {       // op2
 void Compiler::emitModuloCode(string operand1, string operand2) {         // op2 %  op1
 
 }
-void Compiler::emitNegationCode(string operand1, string = "") {           // -op1
+void Compiler::emitNegationCode(string operand1, string ) {           // -op1
 
 }
-void Compiler::emitNotCode(string operand1, string = "") {                // !op1
+void Compiler::emitNotCode(string operand1, string operand2) {                // !op1
 
 }
 void Compiler::emitAndCode(string operand1, string operand2) {            // op2 && op1
