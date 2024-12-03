@@ -801,27 +801,52 @@ void Compiler::code(string op, string operand1, string operand2)
 }
 // TODO STAGE1 START
 void Compiler::pushOperator(string op) { //push name onto operatorStk
-    // push name onto stack;
+    operatorStk.push(op);
 }
-string Compiler::popOperator() { //push name onto operandStk
-//if name is a literal, also create a symbol table entry for it
-    // if name is a literal and has no symbol table entry
-        // insert symbol table entry, call whichType to determine the data type of the literal
-    // push name onto stack;
-    return "string";
+
+void Compiler::pushOperand(string op) {
+    // if (isLiteral(operand) && symbolTable.find(operand) == symbolTable.end()) {
+        // if (isBoolean(operand)) 
+        // {
+            // symbolTable.insert
+        // }
+        
+    // }
+    if (isInteger(op) and (symbolTable.find(op) == symbolTable.end())) {
+      //cout << "inserting " << op << " in pushOperand" << endl;
+		insert(op, whichType(op), CONSTANT, op, YES, 1);
+	}
+	if (isBoolean(op) and (symbolTable.find(op) == symbolTable.end()))
+	{
+		if (op == "true")
+      		symbolTable.insert(pair<string, SymbolTableEntry>(op, SymbolTableEntry("TRUE", BOOLEAN, CONSTANT, "-1", YES, 1)));
+		else if (op == "false")
+	      	symbolTable.insert(pair<string, SymbolTableEntry>(op, SymbolTableEntry("FALSE", BOOLEAN, CONSTANT, "0", YES, 1)));
+
+	}
+   operandStk.push(op);
 }
-void Compiler::pushOperand(string operand) {
-    // if operatorStk is not empty
-        // return top element removed from stack;
-    // else
-        // processError(compiler error; operator stack underflow)
+string Compiler::popOperator() { 
+   if (!operatorStk.empty()) {
+        string popped = operatorStk.top();
+        operatorStk.pop();
+        return popped;
+   }
+    else {
+        processError("compiler error; operator stack underflow");
+        return "";
+    }
 }
 string Compiler::popOperand() {
-    // if operandStk is not empty
-        // return top element removed from stack;
-    // else
-        // processError(compiler error; operand stack underflow)
-    return "string";
+    if (!operandStk.empty()) {
+        string popped = operandStk.top();
+        operandStk.pop();
+        return popped;
+    }
+    else {
+        processError("compiler error; operand stack underflow");
+        return "";
+    }
 }
 // TODO STAGE1 END
 
