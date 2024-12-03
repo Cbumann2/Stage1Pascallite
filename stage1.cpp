@@ -1199,6 +1199,7 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 #include <ctime>
 #include <iomanip>
 #include <vector>
+#include <sstream>
 // functions for <getTime>
 // functions for <ostrstream>
 // functions for <istrstream>
@@ -1539,7 +1540,7 @@ void Compiler::execStmts() {
     if (nextToken() == "end") {
         return;
     }
-    if (token != read && token != "write" && !isNonKeyId(token)) {
+    if (token != "read" && token != "write" && !isNonKeyId(token)) {
         processError("expected \"read\", \"write\", or non-keyword identifier");
     }
     execStmt();
@@ -1593,7 +1594,7 @@ void Compiler::readStmt() {
     if (nextToken() != ")") {
         processError("expected \")\"");
     }
-    code('read',x);
+    code("read",x);
     // Read List End
     if (nextToken() != ";") {
         processError("expected \";\"");
@@ -1614,7 +1615,7 @@ void Compiler::writeStmt() {
     if (nextToken() != ")") {
         processError("expected \")\"");
     }
-    code('write',x);
+    code("write",x);
     // Write List End
     if (nextToken() != ";") {
         processError("expected \";\"");
@@ -1651,7 +1652,7 @@ void Compiler::terms() {
     }
 }    
 void Compiler::factor() {
-    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && != "(") {
+    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
         processError("expected part");
     }
     part();
@@ -1674,18 +1675,17 @@ void Compiler::factors() {
     }
 }   
 void Compiler::part() {
-    string x;
-    if (token() == "not") {
+    string x = token;
+    if (token == "not") {
         if (nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
             code("not",popped);
         }
-        else if (isBoolean(token)) {
-            x = token;
+        else if (isBoolean(x)) {
             if (x == "true") {
                 x = "false";
             }
@@ -1694,8 +1694,7 @@ void Compiler::part() {
             }
             pushOperand(x);
         }
-        else if (isNonKeyId(token)) {
-            x = token;
+        else if (isNonKeyId(x)) {
             code("not", x);
         }
         else {
@@ -1705,11 +1704,10 @@ void Compiler::part() {
     else if (token == "+") {
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
         }
-        x = token;
         else if (isInteger(x) || isNonKeyId(x)) {
             pushOperand(x);
         }
@@ -1718,15 +1716,15 @@ void Compiler::part() {
         }
     }
     else if (token == "-") {
+        x = token;
         if ( nextToken() == "(") {
             express();
-            if (nextToken() != ')') {
+            if (nextToken() != ")") {
                 processError("expected \")\"");
             }
             string popped = popOperand();
             code("neg",popped);
         }
-        x = token;
         else if (isInteger(x)) {
             pushOperand("-"+x);
         }
@@ -1742,7 +1740,7 @@ void Compiler::part() {
     }
     else if(token == "(") {
         express();
-        if (nextToken() != ')') {
+        if (nextToken() != ")") {
             processError("expected \")\"");
         }
     } 
@@ -1754,7 +1752,7 @@ void Compiler::part() {
 
 // Helper functions for the Pascallite lexicon
 bool Compiler::isKeyword(string s) const { // determines if s is a keyword
-    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not"};
+    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not", "mod", "div", "or", "read", "write"};
     for(uint i = 0; i < keywords.size(); ++i) {
         if(s == keywords[i])
             return true;
@@ -1763,7 +1761,7 @@ bool Compiler::isKeyword(string s) const { // determines if s is a keyword
 }
 
 bool Compiler::isSpecialSymbol(char c) const { // determines if c is a special symbol
-    vector<char> symbols = {'=',':',',',';','.','+','-'};
+    vector<char> symbols = {'=',':',',',';','.','+','-',':','*','(',')','<','>'};
     for (uint i = 0; i < symbols.size(); ++i) {
         if(c == symbols[i]){
             return true;
@@ -2104,94 +2102,829 @@ void Compiler::emitStorage()
 }
 
 // TODO STAGE1 START
-void Compiler::emitReadCode(string operand, string = "") {
-    // string name
-    // while (name is broken from list (operand) and put in name != "")
-    // {
-        // if name is not in symbol table
-            // processError(reference to undefined symbol)
-        // if data type of name is not INTEGER
-            // processError(can't read variables of this type)
-        // if storage mode of name is not VARIABLE
-            // processError(attempting to read to a read-only location)
-        // emit code to call the Irvine ReadInt function
-        // emit code to store the contents of the A register at name
-        // set the contentsOfAReg = name
-    // }
+void Compiler::emitReadCode(string operand, string = "") 
+{
+   string name = "";
+   istringstream tokenStream(operand);
+   
+   while (getline(tokenStream, name, ","))
+   {
+      name = trim(name);
+      
+      if (symbolTable.find(name) == symbolTable.end())
+      {
+         processError("reference to undefined symbol: " + operand);
+      }
+      
+      if (symbolTable.at(name).getDataType() != INTEGER)
+      {
+         processError("can't read variables of this type" + name);
+      }
+      if (symbolTable.at(name).getMode() != VARIABLE)
+      {
+         processError("attempting to read to a read-only location");
+      }
+      
+      emit("", "CALL", "ReadInt");
+      
+      emit("", "MOV", name + ", EAX");
+      
+      contentsOfAReg = name;
+   }
 }
 void Compiler::emitWriteCode(string operand, string = "") {
-    string name
-    static bool definedStorage = false
-    while (name is broken from list (operand) and put in name != "")
-    {
-        // if name is not in symbol table
-            // processError(reference to undefined symbol)
-        // if name is not in the A register
-            // emit the code to load name in the A register
-            // set the contentsOfAReg = name
-        // if data type of name is INTEGER or BOOLEAN
-            // emit code to call the Irvine WriteInt function
-        // emit code to call the Irvine Crlf function
- } // end while
-}
-void Compiler::emitAssignCode(string operand1, string operand2) {         // op2 = op1
-    // if types of operands are not the same
-        // processError(incompatible types)
-    // if storage mode of operand2 is not VARIABLE
-        // processError(symbol on left-hand side of assignment must have a storage mode of VARIABLE)
-    // if operand1 = operand2 
-        // return
-    // if operand1 is not in the A register then
-        // emit code to load operand1 into the A register
-        // emit code to store the contents of that register into the memory location pointed to by operand2
-    // set the contentsOfAReg = operand2
-    // if operand1 is a temp then free its name for reuse
-    //operand2 can never be a temporary since it is to the left of ':='
-}
-void Compiler::emitAdditionCode(string operand1, string operand2) {       // op2 +  op1
+   string name = "";
+   istringstream tokenStream(operand);
+   
+   while (getline(tokenStream, name, ','))
+   {
+      name = trim(name);
 
+      if (symbolTable.find(name) == symbolTable.end())
+      {
+         processError("reference to undefinded symbol");
+      }
+      if (contentsOfAReg != name)
+      {
+         emit("Load " + name);
+         contentsOfAReg = name;
+      }
+if (symbolTable.at(name).getDataType() == INTEGER || 
+    symbolTable.at(name).getDataType() == BOOLEAN) 
+      {
+         emit("CALL WriteInt");
+      }
+      
+      emit ("CALL Crlf");
+      
+   }
 }
-void Compiler::emitSubtractionCode(string operand1, string operand2) {    // op2 -  op1
-
+void Compiler::emitAssignCode(string operand1, string operand2) 
+{         
+   if (symbolTable[operand1].dataType != symbolTable[operand2].dataType)
+   {
+      processError("incompatible types");
+   }  
+   if (symbolTable[operand2].storageMode != "VARIABLE")
+   {
+      processError("(symbol on left-hand side of assignment must have a storage mode of VARIABLE");      
+   }
+   if (operand1 == operand2)
+   {
+      return;
+   }
+   if (contentsOfAReg != operand1)
+   {
+      emit("LOAD " + operand1);
+      contentsOfAReg = operand1;
+   }
+   
+   emit("STORE " + operand2);
+   contentsOfAReg = operand2;
+   
+   if (isTemporary(operand1))
+   {
+      freeTemp();
+   }
 }
-void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2 *  op1
-
+void Compiler::emitAdditionCode(string operand1, string operand2) {       
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      emit("STORE " + contentsOfAReg);
+      symbolTable[contentsOfAReg].isAllocated = true;
+      deassign(contentsOfAReg);
+   }
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      deassign(contentsOfAReg);
+   }
+   if (contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+      emit("Load " + operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("ADD " + operand1);
+   
+   
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   string temp = getTemp();
+   emit("STORE " + temp);
+   symbolTable[temp].setDataType(INTEGER);
+   contentsOfAReg = temp;
+   
+   operandStk.push(temp);
+   
 }
-void Compiler::emitDivisionCode(string operand1, string operand2) {       // op2 /  op1
-
+void Compiler::emitSubtractionCode(string operand1, string operand2) 
+{
+   // type check
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg );
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit ("", "SUB", operand1);
+   
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   string temp = getTemp();
+   emit("STORE " + temp);
+   symbolTable[temp].setDataType(INTEGER);
+   contentsOfAReg = temp;
+   
+   operandStk.push(temp);
 }
-void Compiler::emitModuloCode(string operand1, string operand2) {         // op2 %  op1
-
+void Compiler::emitMultiplicationCode(string operand1, string operand2) 
+{ 
+   // type check
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg );
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   // multiply
+   emit("", "MULT", operand1);
+   
+      // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // save result
+   string temp = getTemp();
+   symbolTable[temp] = SymbolTableEntry(temp, INTEGER, VARIABLE, "", YES, 1);
+   contentsOfAReg = temp;
+   
+   // push result
+   pushOperand(temp);
 }
-void Compiler::emitNegationCode(string operand1, string = "") {           // -op1
-
+void Compiler::emitDivisionCode(string operand1, string operand2) 
+{    
+   // type check
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   // divide
+   emit("", "CDQ", "" );
+   emit("", "IDIV", operand1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // save result
+   string temp = getTemp();
+   symbolTable[temp] = SymbolTableEntry(temp, INTEGER, VARIABLE, "", YES, 1);
+   contentsOfAReg = temp;
+   
+   // push result
+   pushOperand(temp);
 }
-void Compiler::emitNotCode(string operand1, string = "") {                // !op1
-
+void Compiler::emitModuloCode(string operand1, string operand2) 
+{         
+   // type check
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg );
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "CDQ");
+   emit("", "IDIV", operand1);
+   
+   string temp = getTemp();
+   emit("", "STORE", "EDX");
+   symbolTable[temp] = SymbolTableEntry(temp, INTEGER, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitAndCode(string operand1, string operand2) {            // op2 && op1
-
+void Compiler::emitNegationCode(string operand1, string = "")
+{ 
+   // type check
+   if (whichType(operand1) != INTEGER)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand1)
+   {
+      emit("LOAD", operand1);
+      contentsOfAReg = operand1;
+   }
+   
+   emit("", "NEG");
+   
+   string temp = getTemp();
+   emit("", "STORE", temp);
+   symbolTable[temp] = SymbolTableEntry(temp, INTEGER, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitOrCode(string operand1, string operand2) {             // op2 || op1
-
+void Compiler::emitNotCode(string operand1, string = "") 
+{                
+   // type check
+   if (whichType(operand1) != BOOLEAN)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand1)
+   {
+      emit("LOAD", operand1);
+      contentsOfAReg = operand1;
+   }
+   
+   emit("" "NOT");
+   
+   string temp = getTemp();
+   emit("", "STORE", temp);
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE,"", YES, 1);
+   
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitEqualityCode(string operand1, string operand2) {       // op2 == op1
-
+void Compiler::emitAndCode(string operand1, string operand2) 
+{            
+   // type check
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "AND", operand1);
+   
+   string temp = getTemp();
+   emit("", "STORE", temp);
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitInequalityCode(string operand1, string operand2) {     // op2 != op1
-
+void Compiler::emitOrCode(string operand1, string operand2) 
+{             
+   // type check
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "OR", operand1);
+   
+   string temp = getTemp();
+   emit("", "STORE", temp);
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitLessThanCode(string operand1, string operand2) {       // op2 <  op1
-
+void Compiler::emitEqualityCode(string operand1, string operand2)
+{       
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETE", temp);
+   
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
-void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) { // op2 <= op1
-
+void Compiler::emitOrCode(string operand1, string operand2) 
+{             
+   // type check
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "OR", operand1);
+   
+   string temp = getTemp();
+   emit("", "STORE", temp);
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE,"", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
+   
 }
-void Compiler::emitGreaterThanCode(string operand1, string operand2) {    // op2 >  op1
-
+void Compiler::emitInequalityCode(string operand1, string operand2) 
+{     
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETNE", temp);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
+      
 }
-void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
-
+void Compiler::emitLessThanCode(string operand1, string operand2)
+{      
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETL", temp);
+   
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE, "", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
+}
+void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2)
+{ 
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETLE", temp);
+   
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE, "", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
+}
+void Compiler::emitGreaterThanCode(string operand1, string operand2) 
+{    
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETG", temp);
+   
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE, "", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
+}
+void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) 
+{ 
+   // type check
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type");
+   }
+   // A register
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("Store", contentsOfAReg);
+      symbolTable[contentsOfAReg].setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // desassign
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   
+   // load operand 2 into register
+   if (contentsOfAReg != operand2)
+   {
+      emit("LOAD", operand2);
+      contentsOfAReg = operand2;
+   }
+   emit("", "CMP", operand1);
+   string temp = getTemp();
+   emit("", "SETGE", temp);
+   
+   symbolTable[temp] = SymbolTableEntry(temp, BOOLEAN, VARIABLE, "", YES, 1);
+   
+   // clear temp
+   if (isTemporary(operand1)) 
+   {
+       freeTemp();  
+   }
+   if (isTemporary(operand2)) 
+   {
+       freeTemp();  
+   }
+   
+   // update A register
+   contentsOfAReg = temp;
+   pushOperand(temp);
 }
 // TODO STAGE1 END
 
@@ -2312,17 +3045,17 @@ string Compiler::genInternalName(storeTypes stype) const
     return name;
 }
 // TODO STAGE1 START
-void Compiler::freeTemp() 
-{
+void Compiler::freeTemp() {
     currentTempNo--;
-    if (currentTempNo < -1)
+    if (currentTempNo < -1) {
         processError("compiler error, currentTempNo should be ≥ –1");
+    }
 }
 string Compiler::getTemp()
 {
     string temp;
     currentTempNo++;
-    temp = "T" + to_string(currentTempNo);
+    temp = "T" + currentTempNo;
     
     if (currentTempNo > maxTempNo) 
     {
@@ -2331,18 +3064,17 @@ string Compiler::getTemp()
     }
     return temp;
 }
-string Compiler::getLabel() 
-{
-   static int labelCount = 0;   
-   labelCount++;
-   return labelCount;
+string Compiler::getLabel() {
+    static int i = -1;
+    i++;
+    string label = ".L" + to_string(i);
+    return label;
 }
 
-bool Compiler::isTemporary(string s) const
-{ 
-   if (s.length() > 1 && s[0] == 'T')
+bool Compiler::isTemporary(string s) const { // determines if s represents a temporary
+    if (s.length() > 1 && s[0] == 'T')
    {
-      for (size_t i = 1; i < s.length(); ++1)
+      for (size_t i = 1; i < s.length(); ++i)
       {
          if (!isdigit(s[i]))
          {
