@@ -436,14 +436,30 @@ void Compiler::express() {
     expresses();
 } 
 void Compiler::expresses() {
-    if (nextToken() != "")
+    string x;
+    if (nextToken() == "=" || token == "<>" || token == "<=" || token == ">=" || token == "<" || token == ">") {
+        x = token;
+        pushOperator(x);
+        factor();
+        string op = popOperator();
+        string operand1 = popOperand();
+        string operand2 = popOperand();
+        code(op, operand1, operand2);
+        terms();
+    }
 } 
 void Compiler::term() {
     factor();
     terms();
 }
 void Compiler::terms() {
-    
+    string x;
+    if (nextToken() == "+" || token == "-" || token == "or") {
+        x = token;
+        pushOperator(x);
+        factor();
+        terms();
+    }
 }    
 void Compiler::factor() {
     if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && != "(") {
@@ -455,13 +471,18 @@ void Compiler::factor() {
 void Compiler::factors() {
     string x;
     // mult_level_op
-    if (nextToken() != "*" && token != "div" && token != "mod" && token != "and") {
-      processError("expected MULT_LEVEL_OP")  
+    if (nextToken() == "*" || token == "div" || token == "mod" || token == "and") { 
+        x = token;
+        pushOperator(x);
+        nextToken();
+        part();
+        // check this 
+        string op = popOperator();
+        string operand1 = popOperand();
+        string operand2 = popOperand();
+        code(op, operand1, operand2);
+        factors();
     }
-    x = token;
-    pushOperator(x);
-    
-    
 }   
 void Compiler::part() {
     string x;
