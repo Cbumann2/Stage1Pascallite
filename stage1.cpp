@@ -1162,7 +1162,6 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 }
 // TODO STAGE1 END
 /*
-/*
 // Connor Bumann and Ian Park
 // CS 4301
 // Stage 1
@@ -1175,6 +1174,7 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 #include <ctime>
 #include <iomanip>
 #include <vector>
+#include <sstream>
 // functions for <getTime>
 // functions for <ostrstream>
 // functions for <istrstream>
@@ -1727,7 +1727,7 @@ void Compiler::part() {
 
 // Helper functions for the Pascallite lexicon
 bool Compiler::isKeyword(string s) const { // determines if s is a keyword
-    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not"};
+    vector<string> keywords = {"program", "begin", "end", "var", "const", "integer", "boolean", "true", "false", "not", "mod", "div", "or", "read", "write"};
     for(uint i = 0; i < keywords.size(); ++i) {
         if(s == keywords[i])
             return true;
@@ -1736,7 +1736,7 @@ bool Compiler::isKeyword(string s) const { // determines if s is a keyword
 }
 
 bool Compiler::isSpecialSymbol(char c) const { // determines if c is a special symbol
-    vector<char> symbols = {'=',':',',',';','.','+','-'};
+    vector<char> symbols = {'=',':',',',';','.','+','-',':','*','(',')','<','>'};
     for (uint i = 0; i < symbols.size(); ++i) {
         if(c == symbols[i]){
             return true;
@@ -2079,16 +2079,19 @@ void Compiler::emitStorage()
 // TODO STAGE1 START
 void Compiler::emitReadCode(string operand, string = "") 
 {
-   string name;
-   stringstream ss(operand);
+   string name = "";
+   istringstream tokenStream(operand);
    
-   while (getline(ss, name, ","))
+   while (getline(tokenStream, name, ","))
    {
-      if (symbolTable.find(operand) == symbolTable.end())
+      name = trim(name);
+      
+      if (symbolTable.find(name) == symbolTable.end())
       {
          processError("reference to undefined symbol: " + operand);
       }
-      if (whichType(name) != INTEGER)
+      
+      if (symbolTable.at(name).getDataType() != INTEGER)
       {
          processError("can't read variables of this type" + name);
       }
@@ -2105,15 +2108,14 @@ void Compiler::emitReadCode(string operand, string = "")
    }
 }
 void Compiler::emitWriteCode(string operand, string = "") {
-   string name
-   static bool definedStorage = false
-   istringsteam tokenStream(operand);
+   string name = "";
+   istringstream tokenStream(operand);
    
    while (getline(tokenStream, name, ','))
    {
       name = trim(name);
 
-      if (!symbolTable.contains(name))
+      if (symbolTable.find(name) == symbolTable.end())
       {
          processError("reference to undefinded symbol");
       }
@@ -2122,7 +2124,8 @@ void Compiler::emitWriteCode(string operand, string = "") {
          emit("Load " + name);
          contentsOfAReg = name;
       }
-      if (symbolTable[name].dataType == "INTEGER" || symbolTable[name].dataType == "BOOLEAN") 
+if (symbolTable.at(name).getDataType() == INTEGER || 
+    symbolTable.at(name).getDataType() == BOOLEAN) 
       {
          emit("CALL WriteInt");
       }
@@ -2156,11 +2159,11 @@ void Compiler::emitAssignCode(string operand1, string operand2)
    
    if (isTemporary(operand1))
    {
-      freeTemp(operand1);
+      freeTemp();
    }
 }
 void Compiler::emitAdditionCode(string operand1, string operand2) {       
-   if (whichType(operand1) != "INTEGER" || whichType(operand2) != "INTEGER")
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
    {
       processError("illegal type");
    }
@@ -2185,16 +2188,16 @@ void Compiler::emitAdditionCode(string operand1, string operand2) {
    
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    string temp = getTemp();
    emit("STORE " + temp);
-   symbolTable[temp].dataType = "INTEGER";
+   symbolTable[temp].setDataType(INTEGER);
    contentsOfAReg = temp;
    
    operandStk.push(temp);
@@ -2203,14 +2206,14 @@ void Compiler::emitAdditionCode(string operand1, string operand2) {
 void Compiler::emitSubtractionCode(string operand1, string operand2) 
 {
    // type check
-   if (whichType(operand1) != "INTEGER" || whichType(operand2) != "INTEGER")
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg );
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2231,16 +2234,16 @@ void Compiler::emitSubtractionCode(string operand1, string operand2)
    
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    string temp = getTemp();
    emit("STORE " + temp);
-   symbolTable[temp].dataType = "INTEGER";
+   symbolTable[temp].setDataType(INTEGER);
    contentsOfAReg = temp;
    
    operandStk.push(temp);
@@ -2248,14 +2251,14 @@ void Compiler::emitSubtractionCode(string operand1, string operand2)
 void Compiler::emitMultiplicationCode(string operand1, string operand2) 
 { 
    // type check
-   if (whichType(operand1) != "INTEGER" || whichType(operand2) != "INTEGER")
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg );
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2278,11 +2281,11 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2)
       // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // save result
@@ -2296,14 +2299,14 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2)
 void Compiler::emitDivisionCode(string operand1, string operand2) 
 {    
    // type check
-   if (whichType(operand1) != "INTEGER" || whichType(operand2) != "INTEGER")
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2321,17 +2324,17 @@ void Compiler::emitDivisionCode(string operand1, string operand2)
    }
    
    // divide
-   emit("", "CDQ", "", );
+   emit("", "CDQ", "" );
    emit("", "IDIV", operand1);
    
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // save result
@@ -2345,14 +2348,14 @@ void Compiler::emitDivisionCode(string operand1, string operand2)
 void Compiler::emitModuloCode(string operand1, string operand2) 
 {         
    // type check
-   if (whichType(operand1) != "INTEGER" || whichType(operand2) != "INTEGER")
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg );
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2379,11 +2382,11 @@ void Compiler::emitModuloCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2393,14 +2396,14 @@ void Compiler::emitModuloCode(string operand1, string operand2)
 void Compiler::emitNegationCode(string operand1, string = "")
 { 
    // type check
-   if (whichType(operand1) != "INTEGER")
+   if (whichType(operand1) != INTEGER)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2417,7 +2420,7 @@ void Compiler::emitNegationCode(string operand1, string = "")
       contentsOfAReg = operand1;
    }
    
-   emit("", "NEG",);
+   emit("", "NEG");
    
    string temp = getTemp();
    emit("", "STORE", temp);
@@ -2426,7 +2429,7 @@ void Compiler::emitNegationCode(string operand1, string = "")
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    
    // update A register
@@ -2436,14 +2439,14 @@ void Compiler::emitNegationCode(string operand1, string = "")
 void Compiler::emitNotCode(string operand1, string = "") 
 {                
    // type check
-   if (whichType(operand1) != "BOOLEAN")
+   if (whichType(operand1) != BOOLEAN)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2471,7 +2474,7 @@ void Compiler::emitNotCode(string operand1, string = "")
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    
    // update A register
@@ -2481,14 +2484,14 @@ void Compiler::emitNotCode(string operand1, string = "")
 void Compiler::emitAndCode(string operand1, string operand2) 
 {            
    // type check
-   if (whichType(operand1) != "BOOLEAN" || whichType(operand2) != "BOOLEAN")
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2514,11 +2517,11 @@ void Compiler::emitAndCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2528,14 +2531,14 @@ void Compiler::emitAndCode(string operand1, string operand2)
 void Compiler::emitOrCode(string operand1, string operand2) 
 {             
    // type check
-   if (whichType(operand1) != "BOOLEAN" || whichType(operand2) != "BOOLEAN")
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2561,11 +2564,11 @@ void Compiler::emitOrCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2582,7 +2585,7 @@ void Compiler::emitEqualityCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2608,11 +2611,11 @@ void Compiler::emitEqualityCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2622,14 +2625,14 @@ void Compiler::emitEqualityCode(string operand1, string operand2)
 void Compiler::emitOrCode(string operand1, string operand2) 
 {             
    // type check
-   if (whichType(operand1) != "BOOLEAN" || whichType(operand2) != "BOOLEAN")
+   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
    {
       processError("illegal type");
    }
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2655,11 +2658,11 @@ void Compiler::emitOrCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2677,7 +2680,7 @@ void Compiler::emitInequalityCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2701,11 +2704,11 @@ void Compiler::emitInequalityCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2723,7 +2726,7 @@ void Compiler::emitLessThanCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2749,11 +2752,11 @@ void Compiler::emitLessThanCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2770,7 +2773,7 @@ void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2795,11 +2798,11 @@ void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2816,7 +2819,7 @@ void Compiler::emitGreaterThanCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2841,11 +2844,11 @@ void Compiler::emitGreaterThanCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -2862,7 +2865,7 @@ void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2)
    // A register
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
    {
-      emit("Store", contentsOfAReg, );
+      emit("Store", contentsOfAReg);
       symbolTable[contentsOfAReg].setAlloc(YES);
       contentsOfAReg = "";
    }
@@ -2887,11 +2890,11 @@ void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2)
    // clear temp
    if (isTemporary(operand1)) 
    {
-       freeTemp(operand1);  
+       freeTemp();  
    }
    if (isTemporary(operand2)) 
    {
-       freeTemp(operand2);  
+       freeTemp();  
    }
    
    // update A register
@@ -3017,17 +3020,17 @@ string Compiler::genInternalName(storeTypes stype) const
     return name;
 }
 // TODO STAGE1 START
-void Compiler::freeTemp() 
-{
+void Compiler::freeTemp() {
     currentTempNo--;
-    if (currentTempNo < -1)
+    if (currentTempNo < -1) {
         processError("compiler error, currentTempNo should be ≥ –1");
+    }
 }
 string Compiler::getTemp()
 {
     string temp;
     currentTempNo++;
-    temp = "T" + to_string(currentTempNo);
+    temp = "T" + currentTempNo;
     
     if (currentTempNo > maxTempNo) 
     {
@@ -3036,18 +3039,17 @@ string Compiler::getTemp()
     }
     return temp;
 }
-string Compiler::getLabel() 
-{
-   static int labelCount = 0;   
-   labelCount++;
-   return labelCount;
+string Compiler::getLabel() {
+    static int i = -1;
+    i++;
+    string label = ".L" + to_string(i);
+    return label;
 }
 
-bool Compiler::isTemporary(string s) const
-{ 
-   if (s.length() > 1 && s[0] == 'T')
+bool Compiler::isTemporary(string s) const { // determines if s represents a temporary
+    if (s.length() > 1 && s[0] == 'T')
    {
-      for (size_t i = 1; i < s.length(); ++1)
+      for (size_t i = 1; i < s.length(); ++i)
       {
          if (!isdigit(s[i]))
          {
@@ -3058,5 +3060,4 @@ bool Compiler::isTemporary(string s) const
    }
    return false;
 }
-*/
 */
