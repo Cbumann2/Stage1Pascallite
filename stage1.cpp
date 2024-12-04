@@ -374,18 +374,20 @@ void Compiler::execStmt() {
     }
 } 
 void Compiler::assignStmt() {
-    string x;
-    if (!isNonKeyId(token)) {
+    string x = token;
+    if (!isNonKeyId(x)) {
         processError("expected non-keyword identifier");
     }
-    x = token;
     pushOperand(x);
     if (nextToken() != ":=") {
         processError("expected \":=\"");
     }
     pushOperator(token);
+    if(nextToken() != "not" && token != "true" && token != "false" && token != "("&& token != "+" && token != "-" && !isInteger(token) && !isNonKeyId(token)) {
+        processError("expected expression");
+    }
     express();
-    if (nextToken() != ";") {
+    if (token != ";") {
         processError("expected \";\"");
     }
     code(popOperator(),popOperand(),popOperand());
@@ -419,7 +421,6 @@ void Compiler::writeStmt() {
     if (nextToken() != "(") {
         processError("expected \"(\"");
     }
-    //if there are issues with this function it may be this
     nextToken();
     x = ids();
     if (token != ")") {
@@ -432,62 +433,75 @@ void Compiler::writeStmt() {
     }
 }
 void Compiler::express() {
+    if(token != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
+        processError("expected expression");
+    }
     term();
     expresses();
 } 
 void Compiler::expresses() {
-    string x;
-    if (nextToken() == "=" || token == "<>" || token == "<=" || token == ">=" || token == "<" || token == ">") {
-        x = token;
+    string x = token;
+    if (x == "=" || x == "<>" || x == "<=" || x == ">=" || x == "<" || x == ">") {
         pushOperator(x);
-        factor();
+        nextToken();
+        term();
         string op = popOperator();
         string operand1 = popOperand();
         string operand2 = popOperand();
         code(op, operand1, operand2);
-        terms();
+        expresses();
     }
 } 
 void Compiler::term() {
+    if(token != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
+        processError("expected expression");
+    }
     factor();
     terms();
 }
 void Compiler::terms() {
-    string x;
-    if (nextToken() == "+" || token == "-" || token == "or") {
-        x = token;
-        pushOperator(x);
-        factor();
-        terms();
-    }
-}    
-void Compiler::factor() {
-    if (nextToken() != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
-        processError("expected part");
-    }
-    part();
-    factors();
-}    
-void Compiler::factors() {
-    string x;
-    //mult_level_op
-    if (nextToken() == "*" || token == "div" || token == "mod" || token == "and") { 
-        x = token;
+    string x = token;
+    if (x == "+" || x == "-" || x == "or") {
         pushOperator(x);
         nextToken();
-        part();
-        // check this 
+        factor();
         string op = popOperator();
         string operand1 = popOperand();
         string operand2 = popOperand();
         code(op, operand1, operand2);
+        terms();
+    }
+}    
+void Compiler::factor() {
+    if (token != "not" && token != "+" && token != "-" && !isInteger(token) && !isBoolean(token) && !isNonKeyId(token) && token != "(") {
+        processError("expected expression");
+    }
+    part();
+    nextToken();
+    factors();
+}    
+void Compiler::factors() {
+    string x = token;
+    //mult_level_op
+    if (x == "*" || x == "div" || x == "mod" || x == "and") { 
+        pushOperator(x);
+        nextToken();
+        part();
+        string op = popOperator();
+        string operand1 = popOperand();
+        string operand2 = popOperand();
+        code(op, operand1, operand2);
+        nextToken();
         factors();
     }
 }   
 void Compiler::part() {
     string x = token;
     if (token == "not") {
-        if (nextToken() == "(") {
+        nextToken();
+        x = token;
+        if ( token == "(") {
+            nextToken();
             express();
             if (token != ")") {
                 processError("expected \")\"");
@@ -502,7 +516,7 @@ void Compiler::part() {
             else {
                 x = "true";
             }
-            pushOperand(x);
+            pushOperand(x);;
         }
         else if (isNonKeyId(x)) {
             code("not", x);
@@ -512,7 +526,10 @@ void Compiler::part() {
         }
     }
     else if (token == "+") {
-        if ( nextToken() == "(") {
+        nextToken();
+        x = token;
+        if ( token == "(") {
+            nextToken();
             express();
             if (token != ")") {
                 processError("expected \")\"");
@@ -526,8 +543,10 @@ void Compiler::part() {
         }
     }
     else if (token == "-") {
+        nextToken();
         x = token;
-        if ( nextToken() == "(") {
+        if ( token == "(") {
+            nextToken();
             express();
             if (token != ")") {
                 processError("expected \")\"");
@@ -549,6 +568,7 @@ void Compiler::part() {
         pushOperand(token);
     }
     else if(token == "(") {
+        nextToken();
         express();
         if (token != ")") {
             processError("expected \")\"");
@@ -961,47 +981,105 @@ void Compiler::emitStorage()
 
 // TODO STAGE1 START
 void Compiler::emitReadCode(string operand, string operand2) {
-    // string name
-    // while (name is broken from list (operand) and put in name != "")
-    // {
-        // if name is not in symbol table
-            // processError(reference to undefined symbol)
-        // if data type of name is not INTEGER
-            // processError(can't read variables of this type)
-        // if storage mode of name is not VARIABLE
-            // processError(attempting to read to a read-only location)
+    string name;
+    name = operand.substr(0, operand.find(','));
+    if (operand.find(',') != string::npos){
+        operand.erase(0, operand.find(',')+1);
+    } else {
+        operand = "";
+    }
+    if (name.length() > 15) {
+            name.erase(15,name.length());
+    }
+    while (name != "")
+    {
+        if (symbolTable.find(name) == symbolTable.end()) {
+            processError("reference to undefined symbol");
+        }
+        if (whichType(name) != INTEGER ) {
+            processError("can't read variables of this type");
+        }
+        if (symbolTable.at(name).getMode() != VARIABLE ) {
+            processError("attempting to read to a read-only location");
+        }
         // emit code to call the Irvine ReadInt function
-        // emit code to store the contents of the A register at name
-        // set the contentsOfAReg = name
-    // }
+        //emit(string label, string instruction, string operands, string comment)
+        emit("", "call", "ReadInt", "; read int; value placed in eax");
+        emit("", "mov", "["+symbolTable.at(name).getInternalName()+"],eax", "; store eax at "+name);
+        contentsOfAReg = name;
+        
+        name = operand.substr(0, operand.find(','));
+        if (operand.find(',') != string::npos){
+            operand.erase(0, operand.find(',')+1);
+        } else {
+            operand = "";
+        }
+        if (name.length() > 15) {
+                name.erase(15,name.length());
+        }
+    }
 }
 void Compiler::emitWriteCode(string operand, string operand2) {
-    // string name
-    // static bool definedStorage = false
-    // while (name is broken from list (operand) and put in name != "")
-    // {
-        // if name is not in symbol table
-            // processError(reference to undefined symbol)
-        // if name is not in the A register
-            // emit the code to load name in the A register
-            // set the contentsOfAReg = name
-        // if data type of name is INTEGER or BOOLEAN
-            // emit code to call the Irvine WriteInt function
-        // emit code to call the Irvine Crlf function
- // } // end while
+    string name;
+    //static bool definedStorage = false;
+    name = operand.substr(0, operand.find(','));
+    if (operand.find(',') != string::npos){
+        operand.erase(0, operand.find(',')+1);
+    } else {
+        operand = "";
+    }
+    if (name.length() > 15) {
+            name.erase(15,name.length());
+    }
+    while (name != "")
+    {
+        if (symbolTable.find(name) == symbolTable.end()) {
+            processError("reference to undefined symbol");
+        }
+        if (name != contentsOfAReg) {
+            emit("", "mov", "eax,["+symbolTable.at(name).getInternalName()+"]", "; store "+name+" in eax");
+            contentsOfAReg = name;
+        }
+        if (whichType(name) == INTEGER  || whichType(name) == BOOLEAN) {
+            emit("", "call", "WriteInt", "; write int in eax to standard out");
+        } 
+        //emit(string label, string instruction, string operands, string comment)
+        emit("", "call", "Crlf", "; write \\r\\n to standard out");
+        name = operand.substr(0, operand.find(','));
+        if (operand.find(',') != string::npos){
+            operand.erase(0, operand.find(',')+1);
+        } else {
+            operand = "";
+        }
+        if (name.length() > 15) {
+                name.erase(15,name.length());
+        }
+    }
 }
 void Compiler::emitAssignCode(string operand1, string operand2) {         // op2 = op1
     // if types of operands are not the same
-        // processError(incompatible types)
+    if (whichType(operand1) != whichType(operand2)) {
+        processError("incompatible types");
+    }
     // if storage mode of operand2 is not VARIABLE
-        // processError(symbol on left-hand side of assignment must have a storage mode of VARIABLE)
-    // if operand1 = operand2 
-        // return
+    if (symbolTable.at(operand2).getMode() != VARIABLE) {
+        processError("symbol on left-hand side of assignment must have a storage mode of VARIABLE");
+    }
+    if (operand1 == operand2) {
+        return;
+    }
     // if operand1 is not in the A register then
+    if (operand1 != contentsOfAReg) {
         // emit code to load operand1 into the A register
-        // emit code to store the contents of that register into the memory location pointed to by operand2
-    // set the contentsOfAReg = operand2
+        emit("","mov","eax,["+symbolTable.at(operand1).getInternalName()+"]", "; Areg = " + operand1);
+    }
+    // emit code to store the contents of that register into the memory location pointed to by operand2
+    emit("","mov","eax,["+symbolTable.at(operand2).getInternalName()+"]", "; Areg = " + operand2);
+    contentsOfAReg = operand2;
     // if operand1 is a temp then free its name for reuse
+    if (isTemporary(operand1)) {
+        freeTemp();
+    }
     //operand2 can never be a temporary since it is to the left of ':='
 }
 void Compiler::emitAdditionCode(string operand1, string operand2) {       // op2 +  op1
@@ -1011,10 +1089,10 @@ void Compiler::emitSubtractionCode(string operand1, string operand2) {    // op2
 
 }
 void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2 *  op1
-
+   //emit(string label, string instruction, string operands, string comment)
 }
 void Compiler::emitDivisionCode(string operand1, string operand2) {       // op2 /  op1
-
+   //emit(string label, string instruction, string operands, string comment)
 }
 void Compiler::emitModuloCode(string operand1, string operand2) {         // op2 %  op1
 
