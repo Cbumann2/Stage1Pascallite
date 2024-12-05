@@ -1127,7 +1127,48 @@ void Compiler::emitAdditionCode(string operand1, string operand2) {       // op2
     pushOperand(contentsOfAReg);
 }
 void Compiler::emitSubtractionCode(string operand1, string operand2) {    // op2 -  op1
-
+    // if type of either operand is not integer
+    if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) {
+            processError("illegal type expected INTEGER");
+    }
+    // if the A Register holds a temp not operand1 nor operand2 then
+    if(isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) {
+      // emit code to store that temp into memory
+      // change the allocate entry for the temp in the symbol table to yes
+      // deassign it
+      emit("", "mov", "["+contentsOfAReg+"],eax", "; deassign AReg");
+      symbolTable.at(contentsOfAReg).setAlloc(YES);
+      contentsOfAReg = "";
+    }
+    // if the A register holds a non-temp not operand1 nor operand2 then deassign it
+    else if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) {
+        contentsOfAReg = "";
+    }
+    // if neither operand is in the A register then
+    if (contentsOfAReg != operand1 && contentsOfAReg != operand2) {
+        // emit code to load operand2 into the A register
+        // emit code to perform register-memory addition
+        emit("", "mov", "eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = " + operand2);
+        contentsOfAReg = operand2;
+    }
+    if(contentsOfAReg == operand1) {
+        emit("","sub","eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = " + operand1 + " - " + operand2);
+    }
+    else {
+        emit("","sub","eax,["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand2 + " - " + operand1);
+    }
+    // deassign all temporaries involved in the addition and free those names for reuse
+    if (isTemporary(operand1)) {
+        freeTemp();
+    }
+    if (isTemporary(operand2)) {
+        freeTemp();
+    }
+    // A Register = next available temporary name and change type of its symbol table entry to integer
+    // push the name of the result onto operandStk
+    contentsOfAReg = getTemp();
+    symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+    pushOperand(contentsOfAReg);
 }
 void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2 *  op1
     //emit(string label, string instruction, string operands, string comment)
@@ -1135,7 +1176,7 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2
     if(whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) {
         processError("illegal type expected INTEGER");
     }
-    // if the A register holds a non-temp not operand1 nor operand2 then deassign it
+    // if the A register holds a temp not operand1 nor operand2 then deassign it
     if(isTemporary(contentsOfAReg) && contentsOfAReg != operand2 && contentsOfAReg != operand1){
         // emit code to store that temp into memory
         // change the allocate entry for the temp in the symbol table to yes
@@ -1144,7 +1185,7 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2
         symbolTable.at(contentsOfAReg).setAlloc(YES);
         contentsOfAReg = "";
     }
-    // if the A register holds a non-temp not operand2 then deassign it
+    // if the A register holds a non-temp not operand1 nor operand2 then deassign it
     if(!isTemporary(contentsOfAReg) && contentsOfAReg != operand2 && contentsOfAReg != operand1){
         contentsOfAReg = "";
     }
@@ -1176,6 +1217,43 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2
 }
 void Compiler::emitDivisionCode(string operand1, string operand2) {       // op2 /  op1
     //emit(string label, string instruction, string operands, string comment)
+    // if type of either operand is not integer
+    if(whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) {
+        processError("illegal type expected INTEGER");
+    }
+    // if the A register holds a temp not operand2 then
+    if(isTemporary(contentsOfAReg) && contentsOfAReg != operand2){
+        // emit code to store that temp into memory
+        // change the allocate entry for the temp in the symbol table to yes
+        // deassign it 
+        emit("", "mov", "["+contentsOfAReg+"],eax","; deassign AReg");
+        symbolTable.at(contentsOfAReg).setAlloc(YES);
+        contentsOfAReg = "";
+    }
+    // if the A register holds a non-temp not operand2 then deassign it
+    if(!isTemporary(contentsOfAReg) && contentsOfAReg != operand2 && contentsOfAReg != operand1){
+        contentsOfAReg = "";
+    }
+    // if operand2 is not in the A register
+    if(contentsOfAReg != operand2){
+        emit("","mov","eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = " + operand1);
+        contentsOfAReg = operand1;
+    }
+    emit("","cdq","", "; sign extend dividend from eax to edx:eax");
+    emit("","idiv","dword ["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand2 + " div " + operand1);
+    
+    //  deassign all temporaries involved and free those names for reuse
+    if (isTemporary(operand1)) {
+        freeTemp();
+    }
+    if (isTemporary(operand2)) {
+        freeTemp();
+    }
+    // A Register = next available temporary name and change type of its symbol table entry to integer
+    // push the name of the result onto operandStk
+    contentsOfAReg = getTemp();
+    symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+    pushOperand(contentsOfAReg);
 }
 void Compiler::emitModuloCode(string operand1, string operand2) {         // op2 %  op1
     //emit(string label, string instruction, string operands, string comment)
