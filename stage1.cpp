@@ -1085,7 +1085,7 @@ void Compiler::emitAssignCode(string operand1, string operand2) {         // op2
 void Compiler::emitAdditionCode(string operand1, string operand2) {       // op2 +  op1
     // if type of either operand is not integer
     if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) {
-            processError("illegal type expected INTEGER");
+            processError("binary '+' requires integer operands");
     }
     // if the A Register holds a temp not operand1 nor operand2 then
     if(isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) {
