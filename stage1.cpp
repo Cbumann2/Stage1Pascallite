@@ -1237,7 +1237,7 @@ void Compiler::emitDivisionCode(string operand1, string operand2) {       // op2
     // if operand2 is not in the A register
     if(contentsOfAReg != operand2){
         emit("","mov","eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = " + operand1);
-        contentsOfAReg = operand1;
+        contentsOfAReg = operand2;
     }
     emit("","cdq","", "; sign extend dividend from eax to edx:eax");
     emit("","idiv","dword ["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand2 + " div " + operand1);
@@ -1261,7 +1261,7 @@ void Compiler::emitModuloCode(string operand1, string operand2) {         // op2
 void Compiler::emitNegationCode(string operand1, string ) {           // -op1
     //emit(string label, string instruction, string operands, string comment)
 }
-void Compiler::emitNotCode(string operand1, string operand2) {                // !op1
+void Compiler::emitNotCode(string operand1, string ) {                // !op1
     //emit(string label, string instruction, string operands, string comment)
 }
 void Compiler::emitAndCode(string operand1, string operand2) {            // op2 && op1
