@@ -1071,7 +1071,7 @@ void Compiler::emitAssignCode(string operand1, string operand2) {         // op2
     // if operand1 is not in the A register then
     if (operand1 != contentsOfAReg) {
         // emit code to load operand1 into the A register
-        emit("","mov","eax,["+symbolTable.at(operand1).getInternalName()+"]", "; " + operand1 + " = AReg");
+        emit("","mov","eax,["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand1);
     }
     // emit code to store the contents of that register into the memory location pointed to by operand2
     emit("","mov","["+symbolTable.at(operand2).getInternalName()+"],eax", "; " + operand2 + " = AReg");
