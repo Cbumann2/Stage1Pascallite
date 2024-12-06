@@ -1323,6 +1323,66 @@ void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) { // 
 }
 void Compiler::emitGreaterThanCode(string operand1, string operand2) {    // op2 >  op1
     //emit(string label, string instruction, string operands, string comment)
+   // check if correct type
+   if (whichType(operand1) != whichType(operand2))
+   {
+      processError("illegal type expected INTEGER");
+   }      
+   // if AReg holds temp and not operand2
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      emit("", "mov", "[" + contentsOfAReg + "], eax", "; deassign Areg");
+      symbolTable.at(contentsOfAReg).setAlloc(YES);
+      contentsOfAReg = "";
+   }
+   // if A holds non-temp and isn't operand2
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2)
+   {
+      contentsOfAReg = "";
+   }
+   // if operand2 is not in AReg
+   if (contentsOfAReg != operand2)
+   {
+      emit("", "mov", "eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = "  + operand2);
+      contentsOfAReg = operand2;
+   }
+   string label1 = getLabel();
+   // emit
+   emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
+   emit("", "jg", label1, "; if " + operand2 + " > " + operand1 + " then jump to set eax to TRUE");
+   emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
+   
+   // creates FALSES  if it doesn't exsit
+   pushOperand("false");
+   popOperand();
+   
+   string label2 = getLabel();
+   emit("", "jmp", label2, "; unconditionally jump");
+   emit(label1+":","","","");
+   emit("","mov", "eax,[TRUE]", "; set eax to TRUE");
+   
+   // creates TRUE  if it doesn't exsit
+   pushOperand("true");
+   popOperand();   
+   
+   emit(label2+":","","","");
+   
+   // free if temp
+   if (isTemporary(operand1))
+   {
+      freeTemp();
+   }
+   if (isTemporary(operand2))
+   {
+      freeTemp();
+   }
+   
+   // assign new temp for result
+   contentsOfAReg = getTemp();
+   symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+   
+   // push result
+   pushOperand(contentsOfAReg);
 }
 void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
     //emit(string label, string instruction, string operands, string comment)
