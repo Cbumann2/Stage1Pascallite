@@ -1297,42 +1297,8 @@ void Compiler::emitModuloCode(string operand1, string operand2) {         // op2
     symbolTable.at(contentsOfAReg).setDataType(INTEGER);
     pushOperand(contentsOfAReg);
 }
-void Compiler::emitNegationCode(string operand1, string ) 
-{  
-   //emit(string label, string instruction, string operands, string comment)
-   // check if correct type         
-   if (whichType(operand1) != INTEGER)
-   {
-      processError("illegal type expected INTEGER");
-   }      
-   // if AReg holds temp and not operand1   
-   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
-   {
-      emit("", "mov", "[" + contentsOfAReg + "], eax", "; deassign Areg");
-      symbolTable.at(contentsOfAReg).setAlloc(YES);
-      contentsOfAReg = "";
-   }
-   // if A holds non-temp and isn't operand1
-   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1)
-   {
-      contentsOfAReg = "";
-   }
-   
-   if (contentsOfAReg != operand1)
-   {
-      emit("", "mov", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand1);
-      contentsOfAReg = operand1;
-   }
-   
-   emit("","neg", "eax", "; AReg = -AReg");
-   
-   if (isTemporary(operand1))
-   {
-      freeTemp();
-   }
-   contentsOfAReg = getTemp();
-   symbolTable.at(contentsOfAReg).setDataType(INTEGER);
-   pushOperand(contentsOfAReg);
+void Compiler::emitNegationCode(string operand1, string ) {           // -op1
+    //emit(string label, string instruction, string operands, string comment)
 }
 void Compiler::emitNotCode(string operand1, string ) {                // !op1
     //emit(string label, string instruction, string operands, string comment)
