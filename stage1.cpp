@@ -1190,12 +1190,12 @@ void Compiler::emitMultiplicationCode(string operand1, string operand2) { // op2
         contentsOfAReg = "";
     }
     // if neither operand is in the A register then
-    if(contentsOfAReg != operand1 && contentsOfAReg != operand2){
-        emit("","mov","eax,["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand1);
-        contentsOfAReg = operand1;
+    if (contentsOfAReg != operand1 && contentsOfAReg != operand2){
+        emit("","mov","eax,["+symbolTable.at(operand2).getInternalName()+"]", "; AReg = " + operand2);
+        contentsOfAReg = operand2;
     }
     
-    if(contentsOfAReg == operand2) {
+    if (contentsOfAReg == operand2) {
         emit("","imul","dword ["+symbolTable.at(operand1).getInternalName()+"]", "; AReg = " + operand2 + " * " + operand1);
     }
     else {
