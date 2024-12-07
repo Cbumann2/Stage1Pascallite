@@ -1561,21 +1561,71 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 }
 
 /*
-void Compiler::emitInequalityCode(string operand1, string operand2) 
-{    
-   // Check if operand types match
+void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) 
+{
+    if (whichType(operand1) != whichType(operand2))
+    {
+        processError("illegal type: mismatched operand types");
+    }
+
+    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+    {
+        emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
+        symbolTable.at(contentsOfAReg).setAlloc(YES);
+        contentsOfAReg = "";
+    }
+
+    if (contentsOfAReg != operand2)
+    {
+        emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+        contentsOfAReg = operand2;
+    }
+
+    emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
+
+   pushOperand("false");
+   popOperand();  
+
+    string trueLabel = getLabel();
+    string endLabel = getLabel();
+    
+    emit("", "jle", trueLabel, "; if " + operand2 + " <= " + operand1 + " then jump to set eax to TRUE");
+
+    emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
+    emit("", "jmp", endLabel, "; unconditionally jump");
+
+    emit(trueLabel + ":");
+    emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
+  
+   pushOperand("true");
+   popOperand();
+
+    emit(endLabel + ":");
+
+    if (isTemporary(operand1))
+    {
+        freeTemp();
+    }
+    if (isTemporary(operand2))
+    {
+        freeTemp();
+    }
+
+    contentsOfAReg = getTemp();
+    symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+    pushOperand(contentsOfAReg);
+}
+
+
+void Compiler::emitLessThanCode(string operand1, string operand2) 
+{
+   // Check if the types match
    if (whichType(operand1) != whichType(operand2))
    {
        processError("illegal type: mismatched operand types");
    }
 
-   // Ensure operand types are BOOLEAN or INTEGER
-   if (whichType(operand1) != BOOLEAN && whichType(operand1) != INTEGER)
-   {
-       processError("illegal type: only BOOLEAN or INTEGER types are supported for inequality comparisons");
-   }
-
-   // Deassign AReg if it holds an unrelated temporary
+   // Ensure AReg is cleared if it holds an unrelated temporary value
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
    {
        emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
@@ -1583,47 +1633,39 @@ void Compiler::emitInequalityCode(string operand1, string operand2)
        contentsOfAReg = "";
    }
 
-   // Deassign AReg if it holds an unrelated non-temporary
-   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
-   {
-       contentsOfAReg = "";
-   }
-
-   // Load operand2 into AReg if it's not already there
+   // Load operand2 into AReg if not already there
    if (contentsOfAReg != operand2)
    {
        emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
        contentsOfAReg = operand2;
    }
 
-   // Emit comparison instruction
+   // Compare operand1 and operand2
    emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
 
    pushOperand("false");
    popOperand();
    
-   // Generate labels for conditional jumps
-   string JumpLabel = getLabel(); // Label for inequality case
-   string endLabel = getLabel();  // Label for end of comparison
-
-   // Conditional jump for inequality
-   emit("", "jne", JumpLabel, "; if " + operand2 + " <> " + operand1 + " then jump to set eax to TRUE");
+   // Conditional jump for less-than
+   string trueLabel = getLabel(); // Generate a unique label for true
+   string endLabel = getLabel();  // Generate a unique label for end
+   emit("", "jl", trueLabel, "; if " + operand2 + " < " + operand1 + " then jump to set eax to TRUE");
 
    // Set eax to FALSE
    emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
    emit("", "jmp", endLabel, "; unconditionally jump");
 
    // Set eax to TRUE
-   emit(JumpLabel + ":");
+   emit(trueLabel  + ":");
    emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
-   
-   pushOperand("true");
-   popOperand();
 
-   // End of comparison
+   ushOperand("true");
+   opOperand();
+
+   // End label
    emit(endLabel + ":");
 
-   // Free temporaries if applicable
+   // Free temporary operands if necessary
    if (isTemporary(operand1))
    {
        freeTemp();
@@ -1633,9 +1675,11 @@ void Compiler::emitInequalityCode(string operand1, string operand2)
        freeTemp();
    }
 
-   // Assign a new temporary for the result and push onto the operand stack
+   // Assign a new temporary for the result
    contentsOfAReg = getTemp();
    symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+
+   // Push the result
    pushOperand(contentsOfAReg);
 }
 */
