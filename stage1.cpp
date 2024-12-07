@@ -1561,53 +1561,43 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 }
 
 /*
-void Compiler::emitSubtractionCode(string operand1, string operand2) 
-{
-    // Ensure both operands are of INTEGER type
-    if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) 
-    {
-        processError("illegal type: subtraction requires INTEGER operands");
-    }
+void Compiler::emitSubtractionCode(string operand1, string operand2) { 
+   if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) 
+   {
+       processError("binary '-' requires integer operands");
+   }
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand2) 
+   {
+       emit("", "mov", "[" + symbolTable.at(contentsOfAReg).getInternalName() + "],eax", "; deassign AReg");
+       symbolTable.at(contentsOfAReg).setAlloc(YES);
+       contentsOfAReg = "";
+   }
+  
+   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand2) 
+   {
+       contentsOfAReg = "";
+   }
 
-    // If AReg holds a temporary unrelated to operand1 or operand2, deassign it
-    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) 
-    {
-        emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
-        symbolTable.at(contentsOfAReg).setAlloc(YES);
-        contentsOfAReg = "";
-    }
-
-    // If AReg holds a non-temporary unrelated to operand1 or operand2, deassign it
-    if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) 
-    {
-        contentsOfAReg = "";
-    }
-
-    // Load operand2 into AReg if not already loaded
-    if (contentsOfAReg != operand2) 
-    {
-        emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
-        contentsOfAReg = operand2;
-    }
-
-    // Emit the subtraction instruction: operand2 - operand1
-    emit("", "sub", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " - " + operand1);
-
-    // Free temporaries if they are no longer needed
-    if (isTemporary(operand1)) 
-    {
-        freeTemp();
-    }
-    if (isTemporary(operand2)) 
-    {
-        freeTemp();
-    }
-
-    // Assign the result to a new temporary
-    contentsOfAReg = getTemp();
-    symbolTable.at(contentsOfAReg).setDataType(INTEGER);
-
-    // Push the result onto the operand stack
-    pushOperand(contentsOfAReg);
+   if (contentsOfAReg != operand2) 
+   {
+       emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+       contentsOfAReg = operand2;
+   }
+   
+   emit("", "sub", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " - " + operand1);
+   
+   if(isTemporary(operand1))
+   {
+      freeTemp();
+   }
+   if(isTemporary(operand2))
+   {
+      freeTemp();
+   }
+    
+   contentsOfAReg = getTemp();
+   symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+   
+   pushOperand(contentsOfAReg);
 }
 */
