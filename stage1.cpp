@@ -2962,7 +2962,7 @@ void Compiler::emitAndCode(string operand1, string operand2)
       contentsOfAReg = "";
    }
    // if operand 1 is not in AReg
-   if (contentsOfAReg != operand2)
+   if (contentsOfAReg != operand1)
    {
       emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
       contentsOfAReg = operand2;
@@ -3501,5 +3501,5 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
         return true;
     }
     return false;
-} } 
+}  
 */
