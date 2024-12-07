@@ -1561,55 +1561,57 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 }
 
 /*
-void Compiler::emitOrCode(string operand1, string operand2) 
-{             
-   // check if correct type
-   if (whichType(operand1) != BOOLEAN || whichType(operand2) != BOOLEAN)
+void Compiler::emitEqualityCode(string operand1, string operand2)
+{
+   if (whichType(operand1) != whichType(operand2))
    {
-      processError("illegal type expected BOOLEAN");
-   }      
-   // if AReg holds temp and not operand1
+       processError("illegal type: mismatched operand types");
+   }
+
    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
    {
-      emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
-      symbolTable.at(contentsOfAReg).setAlloc(YES);
-      contentsOfAReg = "";
+       emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
+       symbolTable.at(contentsOfAReg).setAlloc(YES);
+       contentsOfAReg = "";
    }
-   // if A holds non-temp and isn't operand1
-   if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+
+   if (contentsOfAReg != operand1 && contentsOfAReg != operand2)
    {
-      contentsOfAReg = "";
+       emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+       contentsOfAReg = operand2;
    }
-   // if operand 1 is not in AReg
-   if (contentsOfAReg != operand1)
-   {
-      emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
-      contentsOfAReg = operand2;
-   } 
+
+   emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
+
+   pushOperand("false");
+   popOperand();
+
+   string JumpLabel = getLabel();
+   string endLabel = getLabel();
    
-   if (contentsOfAReg == operand2)
-   {
-      emit("", "or", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " or " + operand1);   
-   }
-   if (contentsOfAReg == operand1)
-   {
-      emit("", "or", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand1 + " or " + operand2);   
-   }
+   emit("", "je", JumpLabel, "; if " + operand2 + " = " + operand1 + " then jump to set eax to TRUE");
+   emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
+   emit("", "jmp", endLabel, "; unconditionally jump");
+
+   emit(JumpLabel + ":");
+   emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
    
-   // free if temp
+   pushOperand("true");
+   popOperand();
+
+   emit(endLabel + ":");
+
    if (isTemporary(operand1))
    {
-      freeTemp();
+       freeTemp();
    }
    if (isTemporary(operand2))
    {
-      freeTemp();
+       freeTemp();
    }
-   // assign new temp for result
+
    contentsOfAReg = getTemp();
    symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
-   
-   // push result
    pushOperand(contentsOfAReg);
 }
 */
