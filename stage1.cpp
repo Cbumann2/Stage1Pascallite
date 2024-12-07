@@ -1561,125 +1561,53 @@ bool Compiler::isTemporary(string s) const { // determines if s represents a tem
 }
 
 /*
-void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) 
+void Compiler::emitSubtractionCode(string operand1, string operand2) 
 {
-    if (whichType(operand1) != whichType(operand2))
+    // Ensure both operands are of INTEGER type
+    if (whichType(operand1) != INTEGER || whichType(operand2) != INTEGER) 
     {
-        processError("illegal type: mismatched operand types");
+        processError("illegal type: subtraction requires INTEGER operands");
     }
 
-    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+    // If AReg holds a temporary unrelated to operand1 or operand2, deassign it
+    if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) 
     {
         emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
         symbolTable.at(contentsOfAReg).setAlloc(YES);
         contentsOfAReg = "";
     }
 
-    if (contentsOfAReg != operand2)
+    // If AReg holds a non-temporary unrelated to operand1 or operand2, deassign it
+    if (!isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2) 
+    {
+        contentsOfAReg = "";
+    }
+
+    // Load operand2 into AReg if not already loaded
+    if (contentsOfAReg != operand2) 
     {
         emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
         contentsOfAReg = operand2;
     }
 
-    emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
+    // Emit the subtraction instruction: operand2 - operand1
+    emit("", "sub", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " - " + operand1);
 
-   pushOperand("false");
-   popOperand();  
-
-    string trueLabel = getLabel();
-    string endLabel = getLabel();
-    
-    emit("", "jle", trueLabel, "; if " + operand2 + " <= " + operand1 + " then jump to set eax to TRUE");
-
-    emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
-    emit("", "jmp", endLabel, "; unconditionally jump");
-
-    emit(trueLabel + ":");
-    emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
-  
-   pushOperand("true");
-   popOperand();
-
-    emit(endLabel + ":");
-
-    if (isTemporary(operand1))
+    // Free temporaries if they are no longer needed
+    if (isTemporary(operand1)) 
     {
         freeTemp();
     }
-    if (isTemporary(operand2))
+    if (isTemporary(operand2)) 
     {
         freeTemp();
     }
 
+    // Assign the result to a new temporary
     contentsOfAReg = getTemp();
-    symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+    symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+
+    // Push the result onto the operand stack
     pushOperand(contentsOfAReg);
-}
-
-
-void Compiler::emitLessThanCode(string operand1, string operand2) 
-{
-   // Check if the types match
-   if (whichType(operand1) != whichType(operand2))
-   {
-       processError("illegal type: mismatched operand types");
-   }
-
-   // Ensure AReg is cleared if it holds an unrelated temporary value
-   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
-   {
-       emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
-       symbolTable.at(contentsOfAReg).setAlloc(YES);
-       contentsOfAReg = "";
-   }
-
-   // Load operand2 into AReg if not already there
-   if (contentsOfAReg != operand2)
-   {
-       emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
-       contentsOfAReg = operand2;
-   }
-
-   // Compare operand1 and operand2
-   emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);
-
-   pushOperand("false");
-   popOperand();
-   
-   // Conditional jump for less-than
-   string trueLabel = getLabel(); // Generate a unique label for true
-   string endLabel = getLabel();  // Generate a unique label for end
-   emit("", "jl", trueLabel, "; if " + operand2 + " < " + operand1 + " then jump to set eax to TRUE");
-
-   // Set eax to FALSE
-   emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
-   emit("", "jmp", endLabel, "; unconditionally jump");
-
-   // Set eax to TRUE
-   emit(trueLabel  + ":");
-   emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
-
-   ushOperand("true");
-   opOperand();
-
-   // End label
-   emit(endLabel + ":");
-
-   // Free temporary operands if necessary
-   if (isTemporary(operand1))
-   {
-       freeTemp();
-   }
-   if (isTemporary(operand2))
-   {
-       freeTemp();
-   }
-
-   // Assign a new temporary for the result
-   contentsOfAReg = getTemp();
-   symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
-
-   // Push the result
-   pushOperand(contentsOfAReg);
 }
 */
