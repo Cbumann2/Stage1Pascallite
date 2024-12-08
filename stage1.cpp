@@ -781,6 +781,14 @@ string Compiler::whichValue(string name) //tells which value a name has
 // TODO
 void Compiler::code(string op, string operand1, string operand2)
 {
+    if (op != "read" && op != "write") {
+        if (operand1.length() > 15) {
+                operand1.erase(15,operand1.length());
+        }
+        if (operand2.length() > 15) {
+                operand2.erase(15,operand2.length());
+        }
+    }
     if (op == "program")
     {
         emitPrologue(operand1);
