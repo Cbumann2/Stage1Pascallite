@@ -1645,4 +1645,66 @@ void Compiler::emitInequalityCode(string operand1, string operand2)
    symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
    pushOperand(contentsOfAReg);
 }
+
+void Compiler::emitEqualityCode(string operand1, string operand2)
+{
+   if (whichType(operand1) != whichType(operand2))
+   {
+       processError("illegal type: mismatched operand types");
+   }
+
+   if (isTemporary(contentsOfAReg) && contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+       emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
+       symbolTable.at(contentsOfAReg).setAlloc(YES);
+       contentsOfAReg = "";
+   }
+
+   if (contentsOfAReg != operand1 && contentsOfAReg != operand2)
+   {
+		emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+		contentsOfAReg = operand2;
+   }
+   
+   if (contentsOfAReg == operand2)
+   {
+		emit("", "cmp", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; compare " + operand2 + " and " + operand1);   
+   }
+   if (contentsOfAReg == operand1)
+   {
+		emit("", "cmp", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; compare " + operand1 + " and " + operand2);   
+   }
+
+   pushOperand("false");
+   popOperand();
+
+   string JumpLabel = getLabel();
+   string endLabel = getLabel();
+   
+   emit("", "je", JumpLabel, "; if " + operand2 + " = " + operand1 + " then jump to set eax to TRUE");
+   emit("", "mov", "eax,[FALSE]", "; else set eax to FALSE");
+   emit("", "jmp", endLabel, "; unconditionally jump");
+
+   emit(JumpLabel + ":");
+   emit("", "mov", "eax,[TRUE]", "; set eax to TRUE");
+   
+   pushOperand("true");
+   popOperand();
+
+   emit(endLabel + ":");
+
+   if (isTemporary(operand1))
+   {
+       freeTemp();
+   }
+   if (isTemporary(operand2))
+   {
+       freeTemp();
+   }
+
+   contentsOfAReg = getTemp();
+   symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+   pushOperand(contentsOfAReg);
+}
+
 */
